@@ -98,7 +98,7 @@ jobs:
   # page instead of installing updates itself.
   macos:
     needs: release
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
