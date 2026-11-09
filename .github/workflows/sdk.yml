@@ -61,9 +61,12 @@ jobs:
       - name: Push to nuget.org
         shell: pwsh
         run: |
-          dotnet nuget push 'packages/*.nupkg' --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' `
-            --source https://api.nuget.org/v3/index.json --skip-duplicate
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # One file at a time: dotnet nuget push does not expand the wildcard here.
+          foreach ($package in Get-ChildItem packages -Filter *.nupkg) {
+            dotnet nuget push $package.FullName --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' `
+              --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: GitHub release
         shell: pwsh
