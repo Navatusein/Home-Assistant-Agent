@@ -25,7 +25,7 @@ jobs:
   # The macOS build of the desktop app and the service (HostOs=macos), so a
   # change that breaks it shows up here rather than at release time.
   macos:
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
