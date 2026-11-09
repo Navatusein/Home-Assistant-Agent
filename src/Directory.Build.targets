@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- Output directory of the desktop host. The Windows service and the
+       plugins (Home-Assistant-Agent-Plugins checked out next to this
+       repository) deploy into it so that all of them share one BaseDirectory:
+       the same Plugins folder, Settings.json and persistent storage. Defined
+       here, not in Directory.Build.props: there $(Configuration) is still
+       empty when a single project is built, and the files landed in
+       bin\net10.0-windows. The folder name is the host's target framework
+       on a Windows build machine (see HomeAssistant.Agent.csproj). -->
+  <PropertyGroup>
+    <AgentHostOutput>$(MSBuildThisFileDirectory)HomeAssistant.Agent\bin\$(Configuration)\net10.0-windows10.0.19041.0</AgentHostOutput>
+  </PropertyGroup>
+
+</Project>

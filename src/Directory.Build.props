@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- The agent's version, in one place: the desktop app, the service and the
+       installer all take it from here. A release build overrides it from the
+       tag (-p:Version=1.2.3). Plugin.Base and Connector carry the plugin API
+       version instead. The plugins live in Home-Assistant-Agent-Plugins. -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Authors>Navatusein</Authors>
+    <Company>Navatusein</Company>
+    <Product>Home Assistant Agent</Product>
+    <RepositoryUrl>https://github.com/Navatusein/Home-Assistant-Agent</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>
