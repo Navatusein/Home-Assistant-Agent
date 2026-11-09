@@ -1,0 +1,341 @@
+<UserControl
+  x:Class="HomeAssistant.Agent.Views.Pages.SettingsPage"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:s="using:HomeAssistant.Agent.ViewModels.Settings"
+  xmlns:u="https://irihi.tech/ursa"
+  xmlns:vm="using:HomeAssistant.Agent.ViewModels.Pages"
+  x:DataType="vm:SettingsViewModel"
+>
+  <Grid RowDefinitions="*,Auto">
+
+    <ScrollViewer Grid.Row="0" Classes="page">
+      <StackPanel Classes="groups">
+
+        <!-- The application's own settings: hand-written, with validation
+             and the live identity preview. -->
+        <StackPanel x:DataType="s:GeneralSettingsViewModel" Classes="groups" DataContext="{Binding General}">
+
+          <u:SettingsCardGroup Header="Application">
+            <u:SettingsCard Content="Start at sign-in" Description="Starts automatically when you sign in." Icon="{DynamicResource SemiIconPlayCircle}">
+              <u:SettingsCard.RightContent>
+                <ToggleSwitch IsChecked="{Binding AutoStart}" Theme="{DynamicResource SimpleToggleSwitch}" />
+              </u:SettingsCard.RightContent>
+            </u:SettingsCard>
+            <u:SettingsCard Content="Log level" Description="Detail written to the log, for the app and the service." Icon="{DynamicResource SemiIconArticle}">
+              <u:SettingsCard.RightContent>
+                <ComboBox Classes="field" ItemsSource="{Binding LogLevels}" SelectedItem="{Binding LogLevel}" />
+              </u:SettingsCard.RightContent>
+            </u:SettingsCard>
+            <u:SettingsCard Content="Check for updates automatically" Description="Agent and plugin updates, on start and every few hours." Icon="{DynamicResource SemiIconSync}">
+              <u:SettingsCard.RightContent>
+                <ToggleSwitch IsChecked="{Binding CheckForUpdates}" Theme="{DynamicResource SimpleToggleSwitch}" />
+              </u:SettingsCard.RightContent>
+            </u:SettingsCard>
+            <!-- Installed copies only: a portable one keeps its data next to itself. -->
+            <u:SettingsCard
+              Content="Import from a previous version"
+              Description="Settings and plugin pairings from a folder with Settings.json."
+              Icon="{DynamicResource SemiIconImport}"
+              IsVisible="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).CanImportData, FallbackValue=False}"
+            >
+              <u:SettingsCard.RightContent>
+                <Button Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ImportDataCommand, FallbackValue={x:Null}}" Content="Import…" />
+              </u:SettingsCard.RightContent>
+            </u:SettingsCard>
+          </u:SettingsCardGroup>
+
+          <u:SettingsCardGroup Header="Device">
+            <!-- Click the row for what the name turns into. -->
+            <u:SettingsCard
+              Content="Device name"
+              Description="Shown in Home Assistant."
+              Icon="{DynamicResource SemiIconDesktop}"
+              IsExpanded="{Binding IsDeviceExpanded}"
+            >
+              <u:SettingsCard.RightContent>
+                <TextBox Classes="field" Text="{Binding DeviceName}" />
+              </u:SettingsCard.RightContent>
+              <u:SettingsCard.Detail>
+                <StackPanel>
+                  <u:SettingsCard Content="Device id" Description="Renaming moves every entity.">
+                    <u:SettingsCard.RightContent>
+                      <TextBlock Classes="value" Text="{Binding DeviceSlug}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                  <u:SettingsCard Content="Base topic" Description="Root topic plus device id.">
+                    <u:SettingsCard.RightContent>
+                      <TextBlock Classes="value" Text="{Binding DeviceBaseTopic}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                </StackPanel>
+              </u:SettingsCard.Detail>
+            </u:SettingsCard>
+          </u:SettingsCardGroup>
+
+          <u:SettingsCardGroup Header="MQTT">
+            <u:SettingsCard
+              Content="Connection"
+              Description="Broker address and credentials."
+              Icon="{DynamicResource SemiIconServer}"
+              IsExpanded="{Binding IsConnectionExpanded}"
+            >
+              <u:SettingsCard.RightContent>
+                <TextBlock Classes="value" Text="{Binding BrokerSummary}" />
+              </u:SettingsCard.RightContent>
+              <u:SettingsCard.Detail>
+                <StackPanel>
+                  <u:SettingsCard Content="Host" Description="Address of the MQTT broker (hostname or IP).">
+                    <u:SettingsCard.RightContent>
+                      <TextBox Classes="field" Text="{Binding MqttBroker}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                  <u:SettingsCard Content="Port" Description="Port of the MQTT broker.">
+                    <u:SettingsCard.RightContent>
+                      <TextBox Classes="field" Text="{Binding MqttPort}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                  <u:SettingsCard Content="User" Description="User of the MQTT broker (empty for anonymous access).">
+                    <u:SettingsCard.RightContent>
+                      <TextBox Classes="field" Text="{Binding MqttUser}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                  <u:SettingsCard Content="Password" Description="Password of the MQTT broker.">
+                    <u:SettingsCard.RightContent>
+                      <TextBox Classes="field RevealPasswordButton" PasswordChar="•" Text="{Binding MqttPassword}" />
+                    </u:SettingsCard.RightContent>
+                  </u:SettingsCard>
+                </StackPanel>
+              </u:SettingsCard.Detail>
+            </u:SettingsCard>
+            <u:SettingsCard Content="Root topic" Description="Prefix for this agent's topics." Icon="{DynamicResource SemiIconBranch}">
+              <u:SettingsCard.RightContent>
+                <TextBox Classes="field" Text="{Binding RootTopic}" />
+              </u:SettingsCard.RightContent>
+            </u:SettingsCard>
+          </u:SettingsCardGroup>
+
+          <u:SettingsCardGroup Header="Windows service">
+            <u:SettingsCard
+              Content="Status"
+              Description="Runs the agent before sign-in."
+              Icon="{DynamicResource SemiIconShield}"
+              IsExpanded="{Binding IsServiceExpanded}"
+            >
+              <u:SettingsCard.RightContent>
+                <TextBlock Classes="value" Text="{Binding WindowsService.Status}" />
+              </u:SettingsCard.RightContent>
+              <u:SettingsCard.Detail>
+                <u:SettingsCard Content="Actions" Description="Require administrator rights.">
+                  <u:SettingsCard.RightContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Command="{Binding WindowsService.InstallCommand}" Content="Install" />
+                      <Button Command="{Binding WindowsService.StartCommand}" Content="Start" />
+                      <Button Command="{Binding WindowsService.StopCommand}" Content="Stop" />
+                      <Button Classes="Danger" Command="{Binding WindowsService.UninstallCommand}" Content="Uninstall" />
+                    </StackPanel>
+                  </u:SettingsCard.RightContent>
+                </u:SettingsCard>
+              </u:SettingsCard.Detail>
+            </u:SettingsCard>
+          </u:SettingsCardGroup>
+
+        </StackPanel>
+
+        <!-- A card per plugin: the switch, and the plugin's own page behind
+             a click on the row. -->
+        <u:SettingsCardGroup Header="Plugins" IsVisible="{Binding HasPlugins}" ItemsSource="{Binding PluginSections}">
+          <u:SettingsCardGroup.ItemTemplate>
+            <DataTemplate x:DataType="s:PluginSettingsSectionViewModel">
+              <u:SettingsCard
+                Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).OpenPluginCommand, FallbackValue={x:Null}}"
+                CommandParameter="{Binding}"
+                Content="{Binding Title}"
+                Description="{Binding Description}"
+                ShowChevron="True"
+              >
+                <u:SettingsCard.Icon>
+                  <Panel Width="20" Height="20">
+                    <Image IsVisible="{Binding HasPluginIcon}" Source="{Binding PluginIcon}" />
+                    <PathIcon Data="{DynamicResource SemiIconPuzzle}" IsVisible="{Binding !HasPluginIcon}" />
+                  </Panel>
+                </u:SettingsCard.Icon>
+                <u:SettingsCard.RightContent>
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                      Classes="Primary"
+                      Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UpdatePluginCommand, FallbackValue={x:Null}}"
+                      CommandParameter="{Binding}"
+                      Content="{Binding UpdateText}"
+                      IsVisible="{Binding HasUpdate}"
+                      Theme="{DynamicResource SolidButton}"
+                    />
+                    <Button
+                      Classes="Danger"
+                      Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).RemovePluginCommand, FallbackValue={x:Null}}"
+                      CommandParameter="{Binding}"
+                      IsVisible="{Binding CanRemove}"
+                      ToolTip.Tip="Remove plugin"
+                    >
+                      <PathIcon Classes="button" Data="{DynamicResource SemiIconDelete}" />
+                    </Button>
+                    <ToggleSwitch
+                      VerticalAlignment="Center"
+                      IsChecked="{Binding IsPluginEnabled}"
+                      Theme="{DynamicResource SimpleToggleSwitch}"
+                      ToolTip.Tip="Enable plugin"
+                    />
+                  </StackPanel>
+                </u:SettingsCard.RightContent>
+              </u:SettingsCard>
+            </DataTemplate>
+          </u:SettingsCardGroup.ItemTemplate>
+        </u:SettingsCardGroup>
+
+        <!-- What the catalogs offer beyond the installed plugins. -->
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+              <TextBlock Classes="heading" Text="Available plugins" />
+              <TextBlock Classes="caption" Text="{Binding CatalogStatus}" />
+            </StackPanel>
+            <Button Grid.Column="1" VerticalAlignment="Center" Command="{Binding CheckCatalogsCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Classes="button" Data="{DynamicResource SemiIconSync}" />
+                <TextBlock Text="Check for updates" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <u:SettingsCardGroup IsVisible="{Binding HasAvailablePlugins}" ItemsSource="{Binding AvailablePlugins}">
+            <u:SettingsCardGroup.ItemTemplate>
+              <DataTemplate x:DataType="s:CatalogPluginViewModel">
+                <u:SettingsCard Content="{Binding Name}">
+                  <u:SettingsCard.Icon>
+                    <Panel Width="20" Height="20">
+                      <Image IsVisible="{Binding HasIcon}" Source="{Binding IconImage}" />
+                      <PathIcon Data="{DynamicResource SemiIconPuzzle}" IsVisible="{Binding !HasIcon}" />
+                    </Panel>
+                  </u:SettingsCard.Icon>
+                  <u:SettingsCard.Description>
+                    <StackPanel Spacing="2">
+                      <TextBlock Classes="caption" IsVisible="{Binding HasDescription}" Text="{Binding Description}" />
+                      <TextBlock Classes="caption" Text="{Binding Byline}" />
+                      <TextBlock
+                        Classes="caption"
+                        Foreground="{DynamicResource SemiColorWarning}"
+                        IsVisible="{Binding HasNote}"
+                        Text="{Binding Note}"
+                      />
+                    </StackPanel>
+                  </u:SettingsCard.Description>
+                  <u:SettingsCard.RightContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <HyperlinkButton
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding HasLink}"
+                        NavigateUri="{Binding Link}"
+                        ToolTip.Tip="{Binding Link}"
+                      >
+                        <PathIcon Classes="button" Data="{DynamicResource SemiIconCode}" />
+                      </HyperlinkButton>
+                      <Button
+                        Classes="Primary"
+                        Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).InstallPluginCommand, FallbackValue={x:Null}}"
+                        CommandParameter="{Binding}"
+                        Content="Install"
+                        IsEnabled="{Binding CanInstall}"
+                        Theme="{DynamicResource SolidButton}"
+                      />
+                    </StackPanel>
+                  </u:SettingsCard.RightContent>
+                </u:SettingsCard>
+              </DataTemplate>
+            </u:SettingsCardGroup.ItemTemplate>
+          </u:SettingsCardGroup>
+
+          <TextBlock Classes="caption" IsVisible="{Binding !HasAvailablePlugins}" Text="No other plugins in the catalogs." />
+        </StackPanel>
+
+        <!-- Where plugins come from: the official catalogs, plus the ones the
+             user adds. Saved with the rest of the settings. -->
+        <u:SettingsCardGroup>
+          <u:SettingsCard Content="Plugin sources" Description="Catalogs to look for plugins and updates in." Icon="{DynamicResource SemiIconGlobe}">
+            <u:SettingsCard.Detail>
+              <StackPanel Margin="72,4,16,16" x:DataType="vm:SettingsViewModel" Spacing="8">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="caption" Text="Official" />
+                  <TextBlock Text="{Binding OfficialSource}" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding General.PluginSources}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Grid Margin="0,0,0,4" ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                        <Button
+                          Grid.Column="1"
+                          Margin="8,0,0,0"
+                          Classes="Danger"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).General.RemovePluginSourceCommand, FallbackValue={x:Null}}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="Remove source"
+                        >
+                          <PathIcon Classes="button" Data="{DynamicResource SemiIconDelete}" />
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBox Grid.Column="0" PlaceholderText="https://github.com/owner/repo" Text="{Binding General.NewPluginSource}" />
+                  <Button Grid.Column="1" Margin="8,0,0,0" Command="{Binding General.AddPluginSourceCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Classes="button" Data="{DynamicResource SemiIconPlus}" />
+                      <TextBlock Text="Add" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+                <TextBlock
+                  Classes="error"
+                  IsVisible="{Binding General.PluginSourceError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                  Text="{Binding General.PluginSourceError}"
+                />
+              </StackPanel>
+            </u:SettingsCard.Detail>
+          </u:SettingsCard>
+        </u:SettingsCardGroup>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Classes="footer">
+      <u:Banner
+        Classes="Bordered"
+        CanClose="True"
+        Content="{Binding StatusMessage}"
+        IsVisible="{Binding IsStatusOpen, Mode=TwoWay}"
+        Type="{Binding StatusSeverity}"
+      />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Classes="caption" Text="{Binding AppVersion}" />
+        <StackPanel
+          Grid.Column="1"
+          IsEnabled="{Binding IsNotBusy}"
+          Orientation="Horizontal"
+          Spacing="8"
+        >
+          <Button Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button
+            Classes="Primary"
+            Command="{Binding SaveCommand}"
+            Content="Save"
+            Theme="{DynamicResource SolidButton}"
+          />
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+
+  </Grid>
+</UserControl>

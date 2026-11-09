@@ -1,0 +1,259 @@
+<Application
+  x:Class="HomeAssistant.Agent.App"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:c="using:HomeAssistant.Agent.ViewModels.Settings.Controls"
+  xmlns:semi="https://irihi.tech/semi"
+  xmlns:tools="using:HomeAssistant.Agent.Plugin.Base.Tools"
+  xmlns:u="https://irihi.tech/ursa"
+  RequestedThemeVariant="Default"
+>
+  <!-- Semi for the standard controls, UrsaSemiTheme for Ursa's own. Both
+       follow the system light / dark theme. The tray icon is created by
+       TrayIconService once the agent state is loaded. -->
+  <Application.Styles>
+    <semi:SemiTheme Locale="en-US" />
+    <semi:UrsaSemiTheme Locale="en-US" />
+    <semi:SemiPopupAnimations />
+    <StyleInclude Source="avares://HomeAssistant.Agent/Styles/Common.axaml" />
+  </Application.Styles>
+
+  <!-- Plugin settings are not hand-written: each template mirrors one control
+       descriptor type from Plugin.Base, picked by view-model type. They sit
+       here because both settings pages render through them; a complex list
+       overrides them locally for its compact rows. -->
+  <Application.DataTemplates>
+
+    <DataTemplate DataType="c:InputTextSettingViewModel">
+      <u:SettingsCard Content="{Binding Label}" Description="{Binding Description}">
+        <u:SettingsCard.RightContent>
+          <Panel>
+            <TextBox Classes="field" IsVisible="{Binding IsText}" Text="{Binding Value}" />
+            <TextBox
+              Classes="field RevealPasswordButton"
+              IsVisible="{Binding IsPassword}"
+              PasswordChar="•"
+              Text="{Binding Value}"
+            />
+          </Panel>
+        </u:SettingsCard.RightContent>
+      </u:SettingsCard>
+    </DataTemplate>
+
+    <DataTemplate DataType="c:FilePickerSettingViewModel">
+      <u:SettingsCard Content="{Binding Label}" Description="{Binding Description}">
+        <u:SettingsCard.RightContent>
+          <Grid Classes="field" ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" Text="{Binding Value}" />
+            <Button
+              Grid.Column="1"
+              Margin="8,0,0,0"
+              Command="{Binding BrowseCommand}"
+              ToolTip.Tip="Browse"
+            >
+              <PathIcon Classes="button" Data="{DynamicResource SemiIconFolderOpen}" />
+            </Button>
+          </Grid>
+        </u:SettingsCard.RightContent>
+      </u:SettingsCard>
+    </DataTemplate>
+
+    <DataTemplate DataType="c:SelectSettingViewModel">
+      <u:SettingsCard Content="{Binding Label}" Description="{Binding Description}">
+        <u:SettingsCard.RightContent>
+          <Grid Classes="field" ColumnDefinitions="*,Auto">
+            <ComboBox
+              Grid.Column="0"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding Options}"
+              SelectedValue="{Binding Value}"
+              SelectedValueBinding="{ReflectionBinding Value}"
+            >
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="tools:PluginToolOption">
+                  <TextBlock Text="{Binding DisplayLabel}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <!-- A fixed list has nothing to re-read. -->
+            <Button
+              Grid.Column="1"
+              Margin="8,0,0,0"
+              Command="{Binding RefreshCommand}"
+              IsVisible="{Binding IsDynamic}"
+              ToolTip.Tip="Refresh"
+            >
+              <PathIcon Classes="button" Data="{DynamicResource SemiIconRefresh}" />
+            </Button>
+          </Grid>
+        </u:SettingsCard.RightContent>
+      </u:SettingsCard>
+    </DataTemplate>
+
+    <DataTemplate DataType="c:SwitchSettingViewModel">
+      <u:SettingsCard Content="{Binding Label}" Description="{Binding Description}">
+        <u:SettingsCard.RightContent>
+          <ToggleSwitch IsChecked="{Binding IsChecked}" Theme="{DynamicResource SimpleToggleSwitch}" />
+        </u:SettingsCard.RightContent>
+      </u:SettingsCard>
+    </DataTemplate>
+
+    <!-- A list whose entries share one set of controls; click the row to see
+         and edit the entries. -->
+    <DataTemplate DataType="c:ComplexListSettingViewModel">
+      <u:SettingsCard
+        Content="{Binding Label}"
+        Description="{Binding Description}"
+        IsExpanded="{Binding IsExpanded}"
+      >
+        <u:SettingsCard.RightContent>
+          <TextBlock Classes="value" Text="{Binding Summary}" />
+        </u:SettingsCard.RightContent>
+        <u:SettingsCard.Detail>
+          <!-- One shared-size scope per list: every row's label column takes
+               the width of the longest label, so the inputs line up. -->
+          <StackPanel Classes="listDetail" Grid.IsSharedSizeScope="True" Spacing="8">
+            <ItemsControl ItemsSource="{Binding Items}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="c:ComplexListItemViewModel">
+                  <Border
+                    Margin="0,0,0,8"
+                    Padding="12"
+                    Background="{DynamicResource SemiColorFill0}"
+                    CornerRadius="{DynamicResource SemiBorderRadiusMedium}"
+                  >
+                    <Grid ColumnDefinitions="*,Auto">
+                      <ItemsControl Grid.Column="0" ItemsSource="{Binding Controls}">
+                        <ItemsControl.DataTemplates>
+                          <DataTemplate DataType="c:InputTextSettingViewModel">
+                            <Grid MinHeight="40" Margin="0,4">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="ListRowLabel" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Classes="caption" IsVisible="{Binding HasDescription}" Text="{Binding Description}" />
+                              </StackPanel>
+                              <TextBox VerticalAlignment="Center" Grid.Column="1" IsVisible="{Binding IsText}" Text="{Binding Value}" />
+                              <TextBox
+                                VerticalAlignment="Center"
+                                Grid.Column="1"
+                                Classes="RevealPasswordButton"
+                                IsVisible="{Binding IsPassword}"
+                                PasswordChar="•"
+                                Text="{Binding Value}"
+                              />
+                            </Grid>
+                          </DataTemplate>
+                          <DataTemplate DataType="c:FilePickerSettingViewModel">
+                            <Grid MinHeight="40" Margin="0,4">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="ListRowLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                              </Grid.ColumnDefinitions>
+                              <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Classes="caption" IsVisible="{Binding HasDescription}" Text="{Binding Description}" />
+                              </StackPanel>
+                              <TextBox VerticalAlignment="Center" Grid.Column="1" Text="{Binding Value}" />
+                              <Button
+                                VerticalAlignment="Center"
+                                Grid.Column="2"
+                                Margin="8,0,0,0"
+                                Command="{Binding BrowseCommand}"
+                                ToolTip.Tip="Browse"
+                              >
+                                <PathIcon Classes="button" Data="{DynamicResource SemiIconFolderOpen}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                          <DataTemplate DataType="c:SelectSettingViewModel">
+                            <Grid MinHeight="40" Margin="0,4">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="ListRowLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                              </Grid.ColumnDefinitions>
+                              <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Classes="caption" IsVisible="{Binding HasDescription}" Text="{Binding Description}" />
+                              </StackPanel>
+                              <ComboBox
+                                VerticalAlignment="Center"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                ItemsSource="{Binding Options}"
+                                SelectedValue="{Binding Value}"
+                                SelectedValueBinding="{ReflectionBinding Value}"
+                              >
+                                <ComboBox.ItemTemplate>
+                                  <DataTemplate x:DataType="tools:PluginToolOption">
+                                    <TextBlock Text="{Binding DisplayLabel}" TextTrimming="CharacterEllipsis" />
+                                  </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                              </ComboBox>
+                              <Button
+                                VerticalAlignment="Center"
+                                Grid.Column="2"
+                                Margin="8,0,0,0"
+                                Command="{Binding RefreshCommand}"
+                                IsVisible="{Binding IsDynamic}"
+                                ToolTip.Tip="Refresh"
+                              >
+                                <PathIcon Classes="button" Data="{DynamicResource SemiIconRefresh}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                          <DataTemplate DataType="c:SwitchSettingViewModel">
+                            <Grid MinHeight="40" Margin="0,4">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="ListRowLabel" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Classes="caption" IsVisible="{Binding HasDescription}" Text="{Binding Description}" />
+                              </StackPanel>
+                              <ToggleSwitch
+                                VerticalAlignment="Center"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                IsChecked="{Binding IsChecked}"
+                                Theme="{DynamicResource SimpleToggleSwitch}"
+                              />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.DataTemplates>
+                      </ItemsControl>
+                      <Button
+                        Grid.Column="1"
+                        Margin="12,8,0,0"
+                        VerticalAlignment="Top"
+                        Classes="Danger"
+                        Command="{Binding $parent[ItemsControl].((c:ComplexListSettingViewModel)DataContext).RemoveCommand, FallbackValue={x:Null}}"
+                        CommandParameter="{Binding}"
+                        ToolTip.Tip="Remove"
+                      >
+                        <PathIcon Classes="button" Data="{DynamicResource SemiIconDelete}" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button HorizontalAlignment="Left" Command="{Binding AddCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Classes="button" Data="{DynamicResource SemiIconPlus}" />
+                <TextBlock Text="Add" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </u:SettingsCard.Detail>
+      </u:SettingsCard>
+    </DataTemplate>
+
+  </Application.DataTemplates>
+</Application>

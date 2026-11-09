@@ -1,0 +1,148 @@
+<UserControl
+  x:Class="HomeAssistant.Agent.Views.Pages.DashboardPage"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:u="https://irihi.tech/ursa"
+  xmlns:vm="using:HomeAssistant.Agent.ViewModels.Pages"
+  x:DataType="vm:DashboardViewModel"
+>
+  <UserControl.Styles>
+    <Style Selector="Ellipse.status">
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{DynamicResource SemiColorDanger}" />
+    </Style>
+    <Style Selector="Ellipse.status.connected">
+      <Setter Property="Fill" Value="{DynamicResource SemiColorSuccess}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+
+    <ScrollViewer Grid.Row="0" Classes="page">
+      <StackPanel Classes="groups">
+
+        <!-- An agent update from the official catalog. -->
+        <u:Banner
+          Classes="Bordered"
+          Header="{Binding AgentUpdateTitle}"
+          IsVisible="{Binding HasAgentUpdate}"
+          Type="Information"
+        >
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding AgentUpdateMessage}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button
+                Classes="Primary"
+                Command="{Binding InstallAgentUpdateCommand}"
+                Content="Update"
+                IsEnabled="{Binding IsNotDownloading}"
+                IsVisible="{Binding CanInstallAgentUpdate}"
+                Theme="{DynamicResource SolidButton}"
+              />
+              <HyperlinkButton
+                VerticalAlignment="Center"
+                Content="Release notes"
+                IsVisible="{Binding HasReleaseNotes}"
+                NavigateUri="{Binding ReleaseNotes}"
+              />
+              <ProgressBar
+                Width="160"
+                VerticalAlignment="Center"
+                IsVisible="{Binding IsDownloading}"
+                Maximum="100"
+                Value="{Binding DownloadProgress}"
+              />
+            </StackPanel>
+          </StackPanel>
+        </u:Banner>
+
+        <u:SettingsCardGroup Header="Home Assistant">
+          <u:SettingsCard Content="MQTT" Description="{Binding BrokerAddress}" Icon="{DynamicResource SemiIconCloud}">
+            <u:SettingsCard.RightContent>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Ellipse Classes="status" Classes.connected="{Binding IsConnected}" />
+                <TextBlock Classes="value" Text="{Binding ConnectionText}" />
+              </StackPanel>
+            </u:SettingsCard.RightContent>
+          </u:SettingsCard>
+          <u:SettingsCard Content="Device" Description="Identifier published to Home Assistant." Icon="{DynamicResource SemiIconDesktop}">
+            <u:SettingsCard.RightContent>
+              <TextBlock Classes="value" Text="{Binding DeviceName}" />
+            </u:SettingsCard.RightContent>
+          </u:SettingsCard>
+          <u:SettingsCard Content="{Binding VersionText}" Description="{Binding UpdateStatus}" Icon="{DynamicResource SemiIconSync}">
+            <u:SettingsCard.RightContent>
+              <Button Command="{Binding CheckForUpdatesCommand}" Content="Check for updates" />
+            </u:SettingsCard.RightContent>
+          </u:SettingsCard>
+        </u:SettingsCardGroup>
+
+        <u:SettingsCardGroup Header="Plugins" ItemsSource="{Binding Plugins}">
+          <u:SettingsCardGroup.ItemTemplate>
+            <DataTemplate x:DataType="vm:PluginStatusViewModel">
+              <u:SettingsCard Content="{Binding Name}" Description="{Binding Details}" Icon="{DynamicResource SemiIconPuzzle}">
+                <u:SettingsCard.RightContent>
+                  <TextBlock Classes="value" Text="{Binding StateText}" />
+                </u:SettingsCard.RightContent>
+              </u:SettingsCard>
+            </DataTemplate>
+          </u:SettingsCardGroup.ItemTemplate>
+        </u:SettingsCardGroup>
+
+        <u:Banner
+          Classes="Bordered"
+          Header="Some plugins failed to load"
+          IsVisible="{Binding HasLoadErrors}"
+          Type="Error"
+        >
+          <ItemsControl ItemsSource="{Binding LoadErrors}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </u:Banner>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Classes="footer">
+      <u:Banner
+        Classes="Bordered"
+        CanClose="True"
+        Content="{Binding StatusMessage}"
+        IsVisible="{Binding IsStatusOpen, Mode=TwoWay}"
+        Type="{Binding StatusSeverity}"
+      />
+      <StackPanel
+        HorizontalAlignment="Right"
+        IsEnabled="{Binding IsNotBusy}"
+        Orientation="Horizontal"
+        Spacing="8"
+      >
+        <Button Command="{Binding RestartCommand}" ToolTip.Tip="Starts a fresh instance of the agent and closes this one.">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Classes="button" Data="{DynamicResource SemiIconRefresh}" />
+            <TextBlock Text="Restart agent" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding ClearDiscoveryCommand}" ToolTip.Tip="Removes every retained discovery config for this device and publishes them again.">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Classes="button" Data="{DynamicResource SemiIconDelete}" />
+            <TextBlock Text="Clear discovery" />
+          </StackPanel>
+        </Button>
+        <Button Classes="Primary" Command="{Binding ReapplyCommand}" Theme="{DynamicResource SolidButton}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Classes="button" Data="{DynamicResource SemiIconSync}" />
+            <TextBlock Text="Reapply settings" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </StackPanel>
+
+  </Grid>
+</UserControl>

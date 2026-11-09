@@ -1,0 +1,74 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:u="https://irihi.tech/ursa"
+>
+
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource SemiColorText2}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- A value shown on the right of a card. -->
+  <Style Selector="TextBlock.value">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource SemiColorText1}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+
+  <!-- A heading of its own, where a SettingsCardGroup header does not fit
+       (it has something next to it). -->
+  <Style Selector="TextBlock.heading">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource SemiColorText0}" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource SemiColorDanger}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- Groups of setting cards stacked down a page. -->
+  <Style Selector="StackPanel.groups">
+    <Setter Property="Spacing" Value="20" />
+  </Style>
+
+  <!-- A page scrolls on its own; the same side padding on every page. -->
+  <!-- No bottom padding: the footer's top margin is the gap under the last
+       card, so scrolling to the end does not leave a double one. -->
+  <Style Selector="ScrollViewer.page">
+    <Setter Property="Padding" Value="32,8,32,0" />
+  </Style>
+
+  <!-- The status and the buttons pinned under a page. The top margin keeps
+       the scrolled content from running right up to the buttons. -->
+  <Style Selector="StackPanel.footer">
+    <Setter Property="Margin" Value="32,16,32,24" />
+    <Setter Property="Spacing" Value="12" />
+  </Style>
+
+  <!-- Every field on the right of a card has the same width. -->
+  <Style Selector="TextBox.field, ComboBox.field, Grid.field">
+    <Setter Property="Width" Value="300" />
+  </Style>
+
+  <!-- Buttons with an icon in front of the text, and icon-only buttons. -->
+  <Style Selector="PathIcon.button">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+  </Style>
+
+  <!-- Rows under an expanded card are indented, so they read as part of it
+       rather than as cards of their own. -->
+  <Style Selector="u|SettingsCard u|SettingsCard">
+    <Setter Property="Padding" Value="72,8,16,8" />
+  </Style>
+
+  <!-- A list's entries, under its row: indented like nested rows. -->
+  <Style Selector="StackPanel.listDetail">
+    <Setter Property="Margin" Value="72,8,16,16" />
+  </Style>
+
+</Styles>

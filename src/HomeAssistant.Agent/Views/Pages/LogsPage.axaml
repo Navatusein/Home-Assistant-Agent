@@ -1,0 +1,203 @@
+<UserControl
+  x:Class="HomeAssistant.Agent.Views.Pages.LogsPage"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:log="using:HomeAssistant.Agent.Logging"
+  xmlns:u="https://irihi.tech/ursa"
+  xmlns:vm="using:HomeAssistant.Agent.ViewModels.Pages"
+  x:DataType="vm:LogsViewModel"
+>
+  <UserControl.Styles>
+    <Style Selector="TextBlock.mono">
+      <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.cell">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource SemiColorText2}" />
+    </Style>
+    <Style Selector="TextBlock.level.muted">
+      <Setter Property="Foreground" Value="{DynamicResource SemiColorText3}" />
+    </Style>
+    <Style Selector="TextBlock.level.warning">
+      <Setter Property="Foreground" Value="{DynamicResource SemiColorWarning}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.level.error">
+      <Setter Property="Foreground" Value="{DynamicResource SemiColorDanger}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.header">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource SemiColorText2}" />
+    </Style>
+    <!-- Compact rows: the list holds thousands of lines. -->
+    <Style Selector="ListBox.log > ListBoxItem">
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Padding" Value="12,4" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Margin="32,8,32,24" RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+    <!-- Filters on the left, actions on the right. -->
+    <Grid Grid.Row="0" Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+      <WrapPanel Grid.Column="0" ItemSpacing="8" LineSpacing="8">
+        <ComboBox
+          MinWidth="130"
+          ItemsSource="{Binding Views}"
+          SelectedItem="{Binding SelectedView}"
+          ToolTip.Tip="Whose log to show"
+        />
+        <ComboBox
+          MinWidth="110"
+          ItemsSource="{Binding Levels}"
+          SelectedItem="{Binding SelectedLevel}"
+          ToolTip.Tip="Lowest level to show"
+        />
+        <ComboBox
+          MinWidth="160"
+          ItemsSource="{Binding Sources}"
+          SelectedItem="{Binding SelectedSource}"
+          ToolTip.Tip="Agent or a single plugin"
+        />
+        <CheckBox
+          VerticalAlignment="Center"
+          Content="Previous runs"
+          IsChecked="{Binding ShowPreviousRuns}"
+          ToolTip.Tip="Also show the logs of earlier starts"
+        />
+        <TextBox
+          Width="240"
+          Classes="clearButton"
+          PlaceholderText="Search"
+          Text="{Binding SearchText}"
+        >
+          <TextBox.InnerLeftContent>
+            <PathIcon
+              Width="14"
+              Height="14"
+              Margin="10,0,0,0"
+              Data="{DynamicResource SemiIconSearch}"
+              Foreground="{DynamicResource SemiColorText2}"
+            />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+      </WrapPanel>
+
+      <StackPanel Grid.Column="1" VerticalAlignment="Top" Orientation="Horizontal" Spacing="8">
+        <Button
+          Command="{Binding LoadServiceLogCommand}"
+          IsVisible="{Binding IsServiceView}"
+          ToolTip.Tip="Re-read the service log"
+        >
+          <PathIcon Classes="button" Data="{DynamicResource SemiIconRefresh}" />
+        </Button>
+        <Button Command="{Binding CopyVisibleCommand}" ToolTip.Tip="Copy the entries shown">
+          <PathIcon Classes="button" Data="{DynamicResource SemiIconCopy}" />
+        </Button>
+        <Button Command="{Binding OpenLogsFolderCommand}" ToolTip.Tip="Open logs folder">
+          <PathIcon Classes="button" Data="{DynamicResource SemiIconFolderOpen}" />
+        </Button>
+        <Button Command="{Binding CollectDiagnosticsCommand}" ToolTip.Tip="Logs, settings with secrets masked and versions, as one zip">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Classes="button" Data="{DynamicResource SemiIconArchive}" />
+            <TextBlock Text="Collect diagnostics" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <TextBlock
+      Grid.Row="1"
+      Margin="0,0,0,8"
+      Classes="caption"
+      IsVisible="{Binding IsServiceView}"
+      Text="{Binding ServiceStatus}"
+    />
+
+    <Border
+      Grid.Row="2"
+      Background="{DynamicResource SemiColorBackground1}"
+      BorderBrush="{DynamicResource SemiColorBorder}"
+      BorderThickness="1"
+      CornerRadius="{DynamicResource SemiBorderRadiusMedium}"
+    >
+      <Grid RowDefinitions="Auto,*">
+        <!-- Column titles; the widths match the rows below. -->
+        <Grid Margin="12,8" ColumnDefinitions="110,64,200,*">
+          <TextBlock Grid.Column="0" Classes="header" Text="Time" />
+          <TextBlock Grid.Column="1" Classes="header" Text="Level" />
+          <TextBlock Grid.Column="2" Classes="header" Text="Source" />
+          <TextBlock Grid.Column="3" Classes="header" Text="Message" />
+        </Grid>
+        <ListBox
+          Grid.Row="1"
+          Background="Transparent"
+          Classes="log"
+          ItemsSource="{Binding Entries}"
+          SelectedItem="{Binding SelectedEntry}"
+          SelectionMode="Single"
+        >
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="log:LogEntry">
+              <Grid ColumnDefinitions="110,64,200,*">
+                <TextBlock Grid.Column="0" Classes="mono cell muted" Text="{Binding Time}" />
+                <TextBlock
+                  Grid.Column="1"
+                  Classes="cell level"
+                  Classes.error="{Binding IsError}"
+                  Classes.muted="{Binding IsMuted}"
+                  Classes.warning="{Binding IsWarning}"
+                  Text="{Binding LevelName}"
+                />
+                <TextBlock
+                  Grid.Column="2"
+                  Classes="cell muted"
+                  Text="{Binding Source}"
+                  ToolTip.Tip="{Binding Source}"
+                />
+                <TextBlock
+                  Grid.Column="3"
+                  Classes="cell"
+                  Text="{Binding Summary}"
+                  ToolTip.Tip="{Binding Summary}"
+                />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+    <!-- The selected entry in full — the exception with its stack trace
+         included — wrapped and selectable for copying. -->
+    <TextBox
+      Grid.Row="3"
+      MaxHeight="220"
+      Margin="0,8,0,0"
+      FontFamily="Consolas, Menlo, monospace"
+      FontSize="12"
+      IsReadOnly="True"
+      IsVisible="{Binding HasSelection}"
+      Text="{Binding SelectedEntry.FullText, Mode=OneWay, FallbackValue=''}"
+      TextWrapping="Wrap"
+    />
+
+    <u:Banner
+      Grid.Row="4"
+      Margin="0,8,0,0"
+      Classes="Bordered"
+      CanClose="True"
+      Content="{Binding StatusMessage}"
+      IsVisible="{Binding IsStatusOpen, Mode=TwoWay}"
+      Type="{Binding StatusSeverity}"
+    />
+
+  </Grid>
+</UserControl>

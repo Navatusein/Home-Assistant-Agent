@@ -1,0 +1,90 @@
+<u:UrsaWindow
+  x:Class="HomeAssistant.Agent.Views.MainWindow"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:pages="using:HomeAssistant.Agent.Views.Pages"
+  xmlns:u="https://irihi.tech/ursa"
+  xmlns:vm="using:HomeAssistant.Agent.ViewModels"
+  xmlns:vmp="using:HomeAssistant.Agent.ViewModels.Pages"
+  Title="Home Assistant Agent"
+  Width="1100"
+  Height="720"
+  MinWidth="720"
+  MinHeight="480"
+  x:DataType="vm:MainWindowViewModel"
+  Icon="/Assets/icon.ico"
+  ExtendClientAreaToDecorationsHint="True"
+  IsFullScreenButtonVisible="False"
+  WindowStartupLocation="CenterScreen"
+>
+  <!-- The caption on the left of the title bar. On macOS UrsaWindow keeps the
+       native traffic lights and moves this to their right. -->
+  <u:UrsaWindow.TitleBarContent>
+    <StackPanel Margin="12,0,0,0" IsHitTestVisible="False" Orientation="Horizontal" Spacing="10">
+      <Image Width="16" Height="16" VerticalAlignment="Center" Source="/Assets/icon.png" />
+      <TextBlock VerticalAlignment="Center" FontSize="12" Text="Home Assistant Agent" />
+    </StackPanel>
+  </u:UrsaWindow.TitleBarContent>
+
+  <!-- The title bar overlays the content; the top margin keeps clear of it. -->
+  <Grid Margin="0,36,0,0" RowDefinitions="Auto,Auto,*">
+
+    <TabStrip
+      Grid.Row="0"
+      Margin="32,4,32,0"
+      SelectedIndex="{Binding SelectedTab}"
+      Theme="{DynamicResource LineTabStrip}"
+    >
+      <TabStripItem Content="Dashboard" />
+      <TabStripItem Content="Logs" />
+      <TabStripItem Content="Settings" />
+    </TabStrip>
+
+    <!-- A plugin's page is pushed on top of Settings: the way back. -->
+    <StackPanel
+      Grid.Row="1"
+      Margin="24,8,32,0"
+      IsVisible="{Binding IsPluginPage}"
+      Orientation="Horizontal"
+      Spacing="4"
+    >
+      <Button Command="{Binding GoBackCommand}" Theme="{DynamicResource BorderlessButton}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <PathIcon Classes="button" Data="{DynamicResource SemiIconArrowLeft}" />
+          <TextBlock Text="Settings" />
+        </StackPanel>
+      </Button>
+      <PathIcon
+        Width="10"
+        Height="10"
+        VerticalAlignment="Center"
+        Data="{DynamicResource SemiIconChevronRight}"
+        Foreground="{DynamicResource SemiColorText2}"
+      />
+      <TextBlock
+        Margin="8,0,0,0"
+        VerticalAlignment="Center"
+        FontWeight="SemiBold"
+        Text="{Binding PluginTitle}"
+      />
+    </StackPanel>
+
+    <ContentControl Grid.Row="2" Margin="0,8,0,0" Content="{Binding Navigation.CurrentPage}">
+      <ContentControl.DataTemplates>
+        <DataTemplate DataType="vmp:DashboardViewModel">
+          <pages:DashboardPage />
+        </DataTemplate>
+        <DataTemplate DataType="vmp:LogsViewModel">
+          <pages:LogsPage />
+        </DataTemplate>
+        <DataTemplate DataType="vmp:SettingsViewModel">
+          <pages:SettingsPage />
+        </DataTemplate>
+        <DataTemplate DataType="vmp:PluginSettingsViewModel">
+          <pages:PluginSettingsPage />
+        </DataTemplate>
+      </ContentControl.DataTemplates>
+    </ContentControl>
+
+  </Grid>
+</u:UrsaWindow>

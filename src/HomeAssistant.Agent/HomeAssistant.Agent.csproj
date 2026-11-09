@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Cross-platform desktop host on Avalonia + Semi.Avalonia + Ursa. -->
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+    </PropertyGroup>
+
+    <!-- One target per build machine. On Windows the Windows-versioned TFM
+         brings the WinRT projections the toasts use (Windows.UI.Notifications),
+         the same version the Windows plugin targets. -->
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <!-- The Windows plugin is built against WinForms and NAudio and expects
+         the host to bring the Windows Desktop runtime: plugins load into the
+         host's process and resolve framework assemblies from it. The reference
+         goes straight to the framework rather than through UseWindowsForms,
+         which would add WinForms' implicit usings (Application, Button, ...)
+         that clash with Avalonia's. -->
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**" />
+        <!-- On disk too: the Windows toasts show it as the app's icon. -->
+        <Content Include="Assets\icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.1.5" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.5" />
+        <PackageReference Include="Semi.Avalonia" Version="12.1.0.1" />
+        <PackageReference Include="Irihi.Ursa" Version="2.3.0" />
+        <PackageReference Include="Irihi.Ursa.Themes.Semi" Version="2.3.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\HomeAssistant.Agent.Plugin.Base\HomeAssistant.Agent.Plugin.Base.csproj" />
+        <ProjectReference Include="..\HomeAssistant.Agent.Core\HomeAssistant.Agent.Core.csproj" />
+    </ItemGroup>
+
+    <!-- Development builds keep their data next to the binaries instead of in
+         %ProgramData% (see AgentPaths). The marker is written into bin only: it
+         is not a publish item, so an installed copy never has one. -->
+    <Target Name="WritePortableMarker" AfterTargets="Build">
+        <Touch Files="$(OutDir)portable" AlwaysCreate="true" Condition="!Exists('$(OutDir)portable')" />
+    </Target>
+
+</Project>
