@@ -1,0 +1,13 @@
+<Project>
+
+  <!-- A Home Assistant Agent plugin: a class library loaded into its own
+       AssemblyLoadContext by the agent. Imported before the project file, so a
+       plugin can still override any of these. -->
+  <PropertyGroup>
+    <AgentPlugin>true</AgentPlugin>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- The plugin ships as one dll; keep the symbols inside it. -->
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+</Project>

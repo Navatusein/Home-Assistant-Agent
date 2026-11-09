@@ -1,0 +1,19 @@
+# Push a tag like v1.2.0 to release the plugin: it is built into a single dll,
+# attached to a GitHub release and listed in this repository's plugin catalog
+# (index.json in the "index" release). Users add the catalog in the agent under
+# Settings -> Plugins -> Sources:
+#   https://github.com/<you>/<repo>/releases/download/index/index.json
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: Navatusein/Home-Assistant-Agent/.github/workflows/plugin-release.yml@main
+    with:
+      project: MyPlugin.csproj

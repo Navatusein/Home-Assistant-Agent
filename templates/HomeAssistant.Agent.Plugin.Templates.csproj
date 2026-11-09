@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- dotnet new templates for Home Assistant Agent plugins
+         ("dotnet new install HomeAssistant.Agent.Plugin.Templates", then
+         "dotnet new ha-agent-plugin"; see the SDK's README).
+
+         Versioned with the SDK: the template references the SDK of the same
+         plugin API. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <PackageType>Template</PackageType>
+        <PackageId>HomeAssistant.Agent.Plugin.Templates</PackageId>
+        <Version>2.0.0</Version>
+        <Title>Home Assistant Agent plugin templates</Title>
+        <Authors>Navatusein</Authors>
+        <Description>dotnet new templates for Home Assistant Agent plugins.</Description>
+        <PackageTags>dotnet-new;templates;home-assistant;plugin</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Navatusein/Home-Assistant-Agent</PackageProjectUrl>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <ContentTargetFolders>content</ContentTargetFolders>
+        <NoDefaultExcludes>true</NoDefaultExcludes>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="content\**\*" Exclude="content\**\bin\**;content\**\obj\**" />
+        <Compile Remove="**\*" />
+    </ItemGroup>
+
+</Project>

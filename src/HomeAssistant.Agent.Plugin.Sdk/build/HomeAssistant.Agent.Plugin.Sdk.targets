@@ -1,0 +1,66 @@
+<Project>
+
+  <!-- Assemblies the agent itself ships. A plugin compiles against them but
+       must use the agent's copies at run time — a copy of its own would be a
+       different type to the host (PluginLoadContext loads these from the agent
+       whenever it has them). So they are neither copied nor embedded. -->
+  <ItemGroup>
+    <AgentHostAssembly Include="HomeAssistant.Agent.Plugin.Base" />
+    <AgentHostAssembly Include="HomeAssistant.Connector" />
+    <AgentHostAssembly Include="HomeAssistantDiscoveryNet" />
+    <AgentHostAssembly Include="MQTTnet" />
+    <AgentHostAssembly Include="StrEnum" />
+    <AgentHostAssembly Include="Microsoft.Extensions.Logging.Abstractions" />
+    <AgentHostAssembly Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <!-- Plugin metadata. A plugin describes itself with the properties below;
+       they are compiled into the dll as [assembly: AssemblyMetadata("AgentPlugin.*", ...)]
+       and the icon as an embedded resource. The agent (PluginInfo) and the
+       catalog tooling read both without running any plugin code.
+
+         PluginName         display name ("Discord")
+         PluginDescription  one line on what the plugin does
+         PluginAuthor       author or organization
+         PluginHomepage     http(s) link to the plugin's page
+         PluginRepository   http(s) link to the source repository
+         PluginIcon         path to a square PNG, 64x64 or larger -->
+  <ItemGroup Condition="'$(AgentPlugin)' == 'true'">
+    <AssemblyMetadata Include="AgentPlugin.Name" Value="$(PluginName)" Condition="'$(PluginName)' != ''" />
+    <AssemblyMetadata Include="AgentPlugin.Description" Value="$(PluginDescription)" Condition="'$(PluginDescription)' != ''" />
+    <AssemblyMetadata Include="AgentPlugin.Author" Value="$(PluginAuthor)" Condition="'$(PluginAuthor)' != ''" />
+    <AssemblyMetadata Include="AgentPlugin.Homepage" Value="$(PluginHomepage)" Condition="'$(PluginHomepage)' != ''" />
+    <AssemblyMetadata Include="AgentPlugin.Repository" Value="$(PluginRepository)" Condition="'$(PluginRepository)' != ''" />
+
+    <EmbeddedResource Include="$(PluginIcon)" Condition="'$(PluginIcon)' != ''">
+      <LogicalName>AgentPlugin.Icon</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Packs the plugin's own dependencies (NAudio, Newtonsoft.Json, ...) into
+       its dll as embedded resources; PluginLoadContext loads them from there,
+       so the plugin ships as a single file. -->
+  <Target Name="EmbedPluginDependencies"
+          AfterTargets="ResolveReferences"
+          BeforeTargets="PrepareResources"
+          Condition="'$(AgentPlugin)' == 'true'">
+    <PropertyGroup>
+      <_AgentHostAssemblyNames>;@(AgentHostAssembly);</_AgentHostAssemblyNames>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_AgentPluginHostFile Include="@(ReferenceCopyLocalPaths)"
+                            Condition="'%(Extension)' == '.dll' And $(_AgentHostAssemblyNames.Contains(';%(Filename);'))" />
+      <_AgentPluginEmbed Include="@(ReferenceCopyLocalPaths)" Exclude="@(_AgentPluginHostFile)"
+                         Condition="'%(Extension)' == '.dll'" />
+
+      <EmbeddedResource Include="@(_AgentPluginEmbed)">
+        <LogicalName>EmbeddedAssemblies/%(Filename).dll</LogicalName>
+      </EmbeddedResource>
+
+      <!-- The host copies must not land next to the plugin either. -->
+      <ReferenceCopyLocalPaths Remove="@(_AgentPluginHostFile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

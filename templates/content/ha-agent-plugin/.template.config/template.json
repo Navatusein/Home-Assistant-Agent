@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Navatusein",
+  "classifications": [ "Home Assistant", "Plugin", "Library" ],
+  "identity": "HomeAssistant.Agent.Plugin.Template",
+  "name": "Home Assistant Agent plugin",
+  "description": "A plugin for Home Assistant Agent, with a release workflow that publishes it to the plugin catalog.",
+  "shortName": "ha-agent-plugin",
+  "sourceName": "MyPlugin",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "symbols": {
+    "code": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "my-plugin",
+      "replaces": "my-plugin",
+      "description": "Plugin code: the stable id of the plugin, lowercase with dashes. Settings, logs and Home Assistant ids are keyed by it."
+    },
+    "pluginAuthor": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "Your Name",
+      "replaces": "Your Name",
+      "description": "Author shown in the agent and in the catalog."
+    },
+    "sdkVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "2.0.*",
+      "replaces": "SDK_VERSION",
+      "description": "Version of HomeAssistant.Agent.Plugin.Sdk to build against."
+    }
+  }
+}

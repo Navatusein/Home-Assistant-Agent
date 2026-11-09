@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The package a plugin outside this repository references:
+
+           <PackageReference Include="HomeAssistant.Agent.Plugin.Sdk" Version="2.0.*" />
+
+         It carries the plugin API (Plugin.Base and Connector) to compile
+         against — as reference assemblies only, since the agent provides them
+         at run time — and the build logic every plugin needs (build/): plugin
+         metadata, and packing the plugin's own dependencies into its dll.
+
+         The package version is the plugin API version (Plugin.Base's
+         AssemblyVersion): 2.0.x builds plugins for agents with API 2.x. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IsPackable>true</IsPackable>
+        <PackageId>HomeAssistant.Agent.Plugin.Sdk</PackageId>
+        <Version>2.0.0</Version>
+        <Description>Build plugins for Home Assistant Agent: the plugin API to compile against and the build targets that turn a class library into a single-dll plugin.</Description>
+        <PackageTags>home-assistant;mqtt;plugin;home-assistant-agent</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <!-- No lib/: nothing of the SDK is copied into a plugin. -->
+        <NoWarn>$(NoWarn);NU5128;NU5131</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Build-time only: their dlls go into ref/ below, not as package
+             dependencies. -->
+        <ProjectReference Include="..\HomeAssistant.Agent.Plugin.Base\HomeAssistant.Agent.Plugin.Base.csproj" PrivateAssets="all" />
+        <ProjectReference Include="..\HomeAssistant.Connector\HomeAssistant.Connector.csproj" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- What the API's public types are made of. A plugin compiles against
+             them, but the agent ships them: no runtime assets flow to it. -->
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" PrivateAssets="runtime;contentfiles;analyzers;build" />
+        <PackageReference Include="HomeAssistantDiscoveryNet" Version="6.0.1" PrivateAssets="runtime;contentfiles;analyzers;build" />
+        <PackageReference Include="MQTTnet" Version="5.0.1.1416" PrivateAssets="runtime;contentfiles;analyzers;build" />
+        <PackageReference Include="StrEnum" Version="2.0.3" PrivateAssets="runtime;contentfiles;analyzers;build" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="build\**" Pack="true" PackagePath="build" />
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackPluginApi</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <!-- Plugin.Base and Connector as reference assemblies (ref/ without lib/):
+         a plugin compiles against them, and they are never copied next to it. -->
+    <Target Name="PackPluginApi">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(OutputPath)HomeAssistant.Agent.Plugin.Base.dll;$(OutputPath)HomeAssistant.Connector.dll">
+                <PackagePath>ref/$(TargetFramework)</PackagePath>
+            </TfmSpecificPackageFile>
+        </ItemGroup>
+    </Target>
+
+</Project>
