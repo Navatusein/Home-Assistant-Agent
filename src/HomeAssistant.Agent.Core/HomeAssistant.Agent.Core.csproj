@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>HomeAssistant.Agent.Core</AssemblyName>
+        <RootNamespace>HomeAssistant.Agent.Core</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\HomeAssistant.Agent.Plugin.Base\HomeAssistant.Agent.Plugin.Base.csproj" />
+    </ItemGroup>
+
+    <!-- Serilog is configured here (AgentLogging) so the desktop app and the
+         Windows service log the same way; plugins still only see the
+         Microsoft.Extensions.Logging abstraction. -->
+    <ItemGroup>
+      <PackageReference Include="Serilog" Version="4.4.0" />
+      <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+      <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    </ItemGroup>
+
+    <!-- Platform\Windows reads the Windows service's state. -->
+    <ItemGroup>
+      <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    </ItemGroup>
+
+</Project>
