@@ -1,0 +1,94 @@
+# Push a tag like v1.2.0 to release the agent: tests, the installer, a GitHub
+# release, and the agent's entry in the catalog (index.json in the "index"
+# release), which the agent's updater reads.
+#
+# A tag with a suffix (v1.2.0-beta.1) is published as a prerelease and left
+# out of the catalog until there is a beta channel.
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+# One writer of index.json at a time.
+concurrency: catalog
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The bundled plugins (see build/Publish.ps1).
+      - uses: actions/checkout@v4
+        with:
+          repository: Navatusein/Home-Assistant-Agent-Plugins
+          path: .plugins
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Version
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$($version.Contains('-'))".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/HomeAssistant.Agent.Tests/HomeAssistant.Agent.Tests.csproj -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: ./build/Publish.ps1 -Version '${{ steps.version.outputs.version }}' -PluginsRepo .plugins
+
+      # Inno Setup 6 is preinstalled on the Windows runners.
+      - name: Installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=${{ steps.version.outputs.version }}" `
+            installer\HomeAssistantAgent.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Code signing goes here once a certificate is in place (SignPath
+      # Foundation, see docs/PLAN-refactor.md): sign artifacts/app before the
+      # installer step and the setup exe after it.
+
+      - name: GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $setup = "artifacts/installer/HomeAssistantAgent-Setup-$version.exe"
+          $flags = if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { '--prerelease' } else { '--latest' }
+
+          gh release create '${{ github.ref_name }}' $setup --title "Home Assistant Agent $version" --generate-notes $flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Catalog
+        if: steps.version.outputs.prerelease != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $tag = '${{ github.ref_name }}'
+          $setup = "artifacts/installer/HomeAssistantAgent-Setup-$version.exe"
+          $repository = '${{ github.repository }}'
+
+          @{
+            version = $version
+            url = "https://github.com/$repository/releases/download/$tag/HomeAssistantAgent-Setup-$version.exe"
+            sha256 = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+            releaseNotes = "https://github.com/$repository/releases/tag/$tag"
+          } | ConvertTo-Json | Set-Content agent-entry.json
+
+          ./build/Update-Index.ps1 -Kind agent -EntryFile agent-entry.json -Repository $repository

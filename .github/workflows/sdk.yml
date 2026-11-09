@@ -1,0 +1,75 @@
+# Publishes the plugin SDK and the dotnet new templates to nuget.org: push a
+# tag like sdk/v2.0.1. The major.minor must be the plugin API version
+# (Plugin.Base's AssemblyVersion) — the packages say which agents a plugin
+# built with them runs on.
+#
+# Publishes through nuget.org Trusted Publishing: no stored API key. Needs a
+# trusted publishing policy on nuget.org for this repository and sdk.yml, and
+# the repository secret NUGET_USER (the nuget.org profile name, not the email).
+name: SDK
+
+on:
+  push:
+    tags: [ 'sdk/v*' ]
+
+permissions:
+  contents: write
+  # The OIDC token NuGet/login trades for a short-lived API key.
+  id-token: write
+
+jobs:
+  pack:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Version
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.Substring('sdk/v'.Length)
+          $api = [version](dotnet msbuild src/HomeAssistant.Agent.Plugin.Base/HomeAssistant.Agent.Plugin.Base.csproj -getProperty:AssemblyVersion)
+          $package = [version]($version.Split('-')[0])
+
+          if ($package.Major -ne $api.Major -or $package.Minor -ne $api.Minor) {
+            Write-Error "SDK $version does not match plugin API $($api.ToString(2))."
+            exit 1
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Pack
+        shell: pwsh
+        run: |
+          dotnet pack src/HomeAssistant.Agent.Plugin.Sdk/HomeAssistant.Agent.Plugin.Sdk.csproj -c Release "-p:Version=${{ steps.version.outputs.version }}" -o packages
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet pack templates/HomeAssistant.Agent.Plugin.Templates.csproj -c Release "-p:Version=${{ steps.version.outputs.version }}" -o packages
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Right before the push: the key lives for an hour.
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org
+        shell: pwsh
+        run: |
+          dotnet nuget push 'packages/*.nupkg' --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' `
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ github.ref_name }}' (Get-ChildItem packages/*.nupkg).FullName `
+            --title "Plugin SDK ${{ steps.version.outputs.version }}" --generate-notes --latest=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

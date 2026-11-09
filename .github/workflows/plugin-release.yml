@@ -1,0 +1,107 @@
+# Releases one plugin into the catalog of the repository that calls it — the
+# official Home-Assistant-Agent-Plugins or a plugin's own repository:
+#
+#   jobs:
+#     release:
+#       uses: Navatusein/Home-Assistant-Agent/.github/workflows/plugin-release.yml@main
+#       with:
+#         project: MyPlugin.csproj
+#
+# Triggered by a tag: the version is what follows its last "v" (v1.2.0, or
+# plugin/discord/v1.2.0). The agent's sources are checked out into .agent; a
+# repository that builds against them (see Home-Assistant-Agent-Plugins'
+# Directory.Build.props) gets the API of agent-ref, any other one keeps using
+# the SDK package. The plugin is built into its single dll, checked
+# by loading it the way the agent does, attached to a release of that tag, and
+# listed in the caller's index.json ("index" release).
+name: Plugin release
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: Path of the plugin's project file.
+        required: true
+        type: string
+      latest:
+        description: Mark the release as the repository's latest (off for repositories with several plugins).
+        required: false
+        type: boolean
+        default: true
+      agent-ref:
+        description: Ref of Navatusein/Home-Assistant-Agent whose release tooling to use.
+        required: false
+        type: string
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    concurrency: catalog-${{ github.repository }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tooling (catalog entry, index update) lives with the agent.
+      - uses: actions/checkout@v4
+        with:
+          repository: Navatusein/Home-Assistant-Agent
+          ref: ${{ inputs.agent-ref }}
+          path: .agent
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        id: build
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.Substring($tag.LastIndexOf('v') + 1)
+
+          dotnet build '${{ inputs.project }}' -c Release "-p:Version=$version" -o out/plugin
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $file = dotnet msbuild '${{ inputs.project }}' -getProperty:TargetFileName
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "file=$file" >> $env:GITHUB_OUTPUT
+
+      - name: Catalog entry
+        shell: pwsh
+        run: |
+          $repository = '${{ github.repository }}'
+          $tag = [uri]::EscapeDataString('${{ github.ref_name }}')
+          $base = "https://github.com/$repository/releases/download/$tag"
+
+          dotnet run --project .agent/tools/PluginManifest -c Release -- `
+            'out/plugin/${{ steps.build.outputs.file }}' `
+            --url "$base/${{ steps.build.outputs.file }}" `
+            --release-notes "https://github.com/$repository/releases/tag/$tag" `
+            --icon-out out/icon.png `
+            --icon-url "$base/icon.png" `
+            --out out/entry.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $entry = Get-Content out/entry.json -Raw | ConvertFrom-Json
+          $assets = @('out/plugin/${{ steps.build.outputs.file }}')
+          if (Test-Path out/icon.png) { $assets += 'out/icon.png' }
+
+          gh release create '${{ github.ref_name }}' @assets `
+            --title "$($entry.name) $($entry.version)" --generate-notes `
+            "--latest=${{ inputs.latest && 'true' || 'false' }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Update the catalog
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.agent/build/Update-Index.ps1 -Kind plugin -EntryFile out/entry.json -Repository '${{ github.repository }}'
