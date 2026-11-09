@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- No UI is shown; WinForms is referenced so plugin discovery can
+             resolve the Windows plugin's WinForms/NAudio type graph. -->
+        <UseWindowsForms>true</UseWindowsForms>
+        <AssemblyName>HomeAssistant.Agent.Service</AssemblyName>
+        <RootNamespace>HomeAssistant.Agent.Service</RootNamespace>
+        <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Content Include="Assets\icon.ico" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+        <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\HomeAssistant.Agent.Core\HomeAssistant.Agent.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Assets\icon.png">
+        <PackagePath>\</PackagePath>
+        <Pack>True</Pack>
+      </None>
+    </ItemGroup>
+
+    <!-- Deploys the service next to the desktop app so both hosts share one
+         BaseDirectory: the same Plugins folder and Settings.json. The service
+         keeps its own .deps.json/.runtimeconfig.json, so its assembly
+         resolution stays independent of the app's.
+         Development builds only: a build for a runtime identifier (the
+         self-contained publish) carries the whole .NET runtime, and that
+         next to the framework-dependent app makes it look for .NET in its
+         own folder and fail to start. Publish lays both out via -o.
+         An empty AgentHostOutput turns the copy off. -->
+    <Target Name="CopyToAgentOutput" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == '' And '$(AgentHostOutput)' != ''">
+        <ItemGroup>
+            <ServiceOutput Include="$(TargetDir)**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(ServiceOutput)" DestinationFiles="@(ServiceOutput->'$(AgentHostOutput)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    </Target>
+
+</Project>
