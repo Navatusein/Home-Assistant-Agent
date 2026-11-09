@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>HomeAssistant.Agent.Plugin.Base</AssemblyName>
+        <RootNamespace>HomeAssistant.Agent.Plugin.Base</RootNamespace>
+
+        <!-- The plugin API version. A plugin records the version it was built
+             against in its assembly references, and PluginManager accepts it
+             when the major matches and the minor is not newer than this one.
+             Bump the minor for additions, the major for breaking changes
+             (2.0: PluginContext replaced the static logger and storage). The
+             same rule covers HomeAssistant.Connector's version. -->
+        <AssemblyVersion>2.0.0.0</AssemblyVersion>
+        <FileVersion>2.0.0.0</FileVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\HomeAssistant.Connector\HomeAssistant.Connector.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- Logging abstraction shared with the host and every plugin. Shipping
+           it here puts the dll in the host's base directory, so the plugin's
+           ILogger resolves to this single shared type (see PluginLoadContext)
+           instead of a per-plugin embedded copy. -->
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    </ItemGroup>
+
+</Project>
