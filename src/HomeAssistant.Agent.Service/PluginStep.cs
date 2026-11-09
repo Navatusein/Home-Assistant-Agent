@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using HomeAssistant.Agent.Core;
 using HomeAssistant.Agent.Core.Logging;
 using HomeAssistant.Agent.Core.Updates;
@@ -48,13 +48,13 @@ internal static class PluginStep
         {
             WaitForExit(request.WaitForProcess, logger);
 
-            var status = ServiceInstaller.Run("status");
+            var status = ServiceManager.Run("status");
             serviceWasRunning = status == 0;
 
             if (status is 0 or 1)
-                ServiceInstaller.Run("stop");
+                ServiceManager.Run("stop");
 
-            PluginOperations.Apply(request, AgentPaths.PluginsDirectory, new PluginLock(PluginLock.DefaultPath));
+            PluginOperations.Apply(request, AgentPaths.InstalledPluginsDirectory, new PluginLock(PluginLock.DefaultPath));
 
             var message = Describe(request);
             logger.LogInformation("Plugins changed: {Changes}", message);
@@ -72,7 +72,7 @@ internal static class PluginStep
         finally
         {
             if (serviceWasRunning)
-                ServiceInstaller.Run("start");
+                ServiceManager.Run("start");
 
             if (request.Relaunch != null)
                 RelaunchDesktopApp(logger);
@@ -104,8 +104,14 @@ internal static class PluginStep
     // Always the app next to this executable, whatever the command line said,
     // and through Explorer so that it runs as the signed-in user, not with the
     // administrator rights of this process.
+    //
+    // Windows only: on macOS the app runs this step and waits for it, then
+    // restarts itself (UpdateService), so there is nothing to bring back.
     private static void RelaunchDesktopApp(Microsoft.Extensions.Logging.ILogger logger)
     {
+        if (!OperatingSystem.IsWindows())
+            return;
+
         var app = Path.Combine(AgentPaths.InstallDirectory, "HomeAssistant.Agent.exe");
 
         if (!File.Exists(app))

@@ -7,9 +7,11 @@
        here, not in Directory.Build.props: there $(Configuration) is still
        empty when a single project is built, and the files landed in
        bin\net10.0-windows. The folder name is the host's target framework
-       on a Windows build machine (see HomeAssistant.Agent.csproj). -->
+       for HostOs (see HomeAssistant.Agent.csproj). -->
   <PropertyGroup>
-    <AgentHostOutput>$(MSBuildThisFileDirectory)HomeAssistant.Agent\bin\$(Configuration)\net10.0-windows10.0.19041.0</AgentHostOutput>
+    <AgentHostFramework Condition="'$(HostOs)' == 'windows'">net10.0-windows10.0.19041.0</AgentHostFramework>
+    <AgentHostFramework Condition="'$(HostOs)' != 'windows'">net10.0</AgentHostFramework>
+    <AgentHostOutput>$(MSBuildThisFileDirectory)HomeAssistant.Agent\bin\$(Configuration)\$(AgentHostFramework)</AgentHostOutput>
   </PropertyGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
@@ -27,6 +27,16 @@ public sealed class WindowsElevatedLauncher : IElevatedLauncher
         {
             throw new OperationCanceledException("Administrator approval was declined.", ex);
         }
+    }
+
+    public async Task<int> RunAsync(string file, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken = default)
+    {
+        using var process = Start(file, arguments)
+            ?? throw new InvalidOperationException($"{Path.GetFileName(file)} did not start");
+
+        await process.WaitForExitAsync(cancellationToken);
+        return process.ExitCode;
     }
 
     // Windows command-line quoting (the rules CommandLineToArgvW parses back):

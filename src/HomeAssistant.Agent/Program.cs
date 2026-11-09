@@ -29,6 +29,11 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // The data folder holds the logs, so it must exist before them; on a
+        // Mac creating it the first time needs the administrator password.
+        if (OperatingSystem.IsMacOS() && !Platform.MacFirstRun.EnsureDataFolder())
+            return 1;
+
         ConfigureLogging();
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
@@ -85,6 +90,9 @@ internal static class Program
     // Also used by the XAML previewer.
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
         .UsePlatformDetect()
+        // A menu bar app on macOS: no Dock icon and no app menu of its own —
+        // like the Windows build, it lives in the tray (the menu bar extra).
+        .With(new MacOSPlatformOptions { ShowInDock = false, DisableDefaultApplicationMenuItems = true })
         .LogToSerilog();
 
     // Waits for the previous instance to release the session. On this thread,

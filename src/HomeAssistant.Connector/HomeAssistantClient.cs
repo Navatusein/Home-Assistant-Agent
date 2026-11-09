@@ -65,10 +65,17 @@ public class HomeAssistantClient
         _mqttClient.ReconnectedAsync += PublishAvailabilityAsync;
     }
 
+    // Enough for a broker on the local network to answer.
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
+
     public async Task<bool> ConnectToMqttAsync(string broker, int port, string? username = null, string? password = null)
     {
         var options = new MqttClientOptionsBuilder()
             .WithTcpServer(broker, port)
+            // An unreachable broker would otherwise hold a connect attempt for
+            // the system's TCP timeout (about 75 s on macOS), and with it the
+            // settings Save; the background retries take over after this.
+            .WithTimeout(ConnectTimeout)
             .WithClientId(MqttDevice)
             .WithCleanSession()
             .WithWillTopic(MqttTopicHelper.GetAvailabilityTopic(MqttRootTopic, MqttDevice))

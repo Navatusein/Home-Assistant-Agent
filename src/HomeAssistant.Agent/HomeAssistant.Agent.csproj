@@ -10,14 +10,14 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
-    <!-- One target per build machine. On Windows the Windows-versioned TFM
-         brings the WinRT projections the toasts use (Windows.UI.Notifications),
-         the same version the Windows plugin targets. -->
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <!-- One target per system (HostOs, Directory.Build.props). On Windows the
+         Windows-versioned TFM brings the WinRT projections the toasts use
+         (Windows.UI.Notifications), the same version the Windows plugin targets. -->
+    <PropertyGroup Condition="'$(HostOs)' == 'windows'">
         <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
         <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     </PropertyGroup>
-    <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <PropertyGroup Condition="'$(HostOs)' != 'windows'">
         <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
@@ -27,7 +27,7 @@
          goes straight to the framework rather than through UseWindowsForms,
          which would add WinForms' implicit usings (Application, Button, ...)
          that clash with Avalonia's. -->
-    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
         <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
     </ItemGroup>
 

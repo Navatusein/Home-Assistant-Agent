@@ -92,3 +92,37 @@ jobs:
           } | ConvertTo-Json | Set-Content agent-entry.json
 
           ./build/Update-Index.ps1 -Kind agent -EntryFile agent-entry.json -Repository $repository
+
+  # The macOS disk image (Apple silicon), added to the release the job above
+  # created. Not listed in the catalog: on a Mac the agent links to the release
+  # page instead of installing updates itself.
+  macos:
+    needs: release
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Navatusein/Home-Assistant-Agent-Plugins
+          path: .plugins
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          ./build/Publish-MacOS.ps1 -Version $version -PluginsRepo .plugins
+
+      - name: Add to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          gh release upload '${{ github.ref_name }}' "artifacts/installer/HomeAssistantAgent-$version-macos-arm64.dmg"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

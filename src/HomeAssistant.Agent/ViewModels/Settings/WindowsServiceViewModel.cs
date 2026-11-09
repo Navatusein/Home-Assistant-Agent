@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HomeAssistant.Agent.Core.Platform;
+using Microsoft.Extensions.Logging;
 
 namespace HomeAssistant.Agent.ViewModels.Settings;
 
@@ -16,19 +17,24 @@ public partial class WindowsServiceViewModel : ObservableObject
     private static readonly TimeSpan SettleDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly IBackgroundServiceControl _service;
+    private readonly ILogger<WindowsServiceViewModel> _logger;
     private readonly DispatcherTimer _refreshTimer;
 
     private bool _actionRunning;
 
-    public WindowsServiceViewModel(IBackgroundServiceControl service)
+    public WindowsServiceViewModel(IBackgroundServiceControl service, ILogger<WindowsServiceViewModel> logger)
     {
         _service = service;
+        _logger = logger;
 
         _refreshTimer = new DispatcherTimer { Interval = RefreshInterval };
         _refreshTimer.Tick += (_, _) => RefreshState();
 
         RefreshState();
     }
+
+    // The Windows service, or the launchd daemon on macOS.
+    public string Title { get; } = OperatingSystem.IsWindows() ? "Windows service" : "Background service";
 
     [ObservableProperty]
     private string _status = string.Empty;
@@ -113,16 +119,23 @@ public partial class WindowsServiceViewModel : ObservableObject
 
         string? failure = null;
 
+        // Each action in the app's log: the service's own log only shows what
+        // the service did, not that it was asked.
+        _logger.LogInformation("Background service: {Action} requested", name);
+
         try
         {
             await _service.RunAsync(action);
+            _logger.LogInformation("Background service: {Action} done, now {State}", name, _service.GetState());
         }
         catch (OperationCanceledException)
         {
             // The user declined the administrator prompt.
+            _logger.LogInformation("Background service: {Action} cancelled at the administrator prompt", name);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Background service: {Action} failed", name);
             failure = ex is InvalidOperationException ? ex.Message : $"'{name}' failed — {ex.Message}";
         }
 

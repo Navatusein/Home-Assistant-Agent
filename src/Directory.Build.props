@@ -1,4 +1,8 @@
-<Project>
+﻿<Project>
+
+  <!-- The repository-wide settings (HostOs) one folder up: MSBuild stops at the
+       nearest Directory.Build.props, so this one imports it. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <!-- The agent's version, in one place: the desktop app, the service and the
        installer all take it from here. A release build overrides it from the

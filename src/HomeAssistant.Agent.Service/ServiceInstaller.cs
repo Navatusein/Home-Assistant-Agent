@@ -1,3 +1,4 @@
+﻿#if WINDOWS
 using System.Diagnostics;
 using System.ServiceProcess;
 
@@ -18,11 +19,12 @@ namespace HomeAssistant.Agent.Service;
 //
 // Registration goes through sc.exe; state is read and awaited through
 // ServiceController, never from sc.exe's localized output.
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal static class ServiceInstaller
 {
     // The service-manager registration id, not the assembly name (see
-    // WindowsServiceInfo for why it keeps its old value).
-    private const string ServiceName = Core.WindowsServiceInfo.ServiceName;
+    // BackgroundServiceInfo for why it keeps its old value).
+    private const string ServiceName = Core.BackgroundServiceInfo.ServiceName;
     private const string DisplayName = "Home Assistant Agent Service";
 
     private static readonly TimeSpan StateTimeout = TimeSpan.FromSeconds(30);
@@ -165,3 +167,4 @@ internal static class ServiceInstaller
         return process.ExitCode;
     }
 }
+#endif

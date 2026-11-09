@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="HomeAssistant.Agent.Views.Pages.DashboardPage"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -43,7 +43,7 @@
               />
               <HyperlinkButton
                 VerticalAlignment="Center"
-                Content="Release notes"
+                Content="{Binding ReleaseLinkText}"
                 IsVisible="{Binding HasReleaseNotes}"
                 NavigateUri="{Binding ReleaseNotes}"
               />

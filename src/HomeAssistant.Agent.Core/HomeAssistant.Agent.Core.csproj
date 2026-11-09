@@ -8,6 +8,12 @@
         <RootNamespace>HomeAssistant.Agent.Core</RootNamespace>
     </PropertyGroup>
 
+    <!-- The pure parts of the platform code (quoting, plist text, launchctl
+         output) are internal and tested on any system. -->
+    <ItemGroup>
+      <InternalsVisibleTo Include="HomeAssistant.Agent.Tests" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\HomeAssistant.Agent.Plugin.Base\HomeAssistant.Agent.Plugin.Base.csproj" />
     </ItemGroup>

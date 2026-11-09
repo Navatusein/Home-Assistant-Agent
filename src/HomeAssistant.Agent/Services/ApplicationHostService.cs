@@ -1,3 +1,4 @@
+﻿using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -39,6 +40,9 @@ public sealed class ApplicationHostService(
     private MainWindow? _window;
     private bool _exiting;
 
+    // Kept so the handler stays registered for the lifetime of the app.
+    private PosixSignalRegistration? _terminate;
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         // Reading the settings must happen before the window can be opened:
@@ -69,7 +73,11 @@ public sealed class ApplicationHostService(
         trayIcon.SettingsRequested += ShowWindow<SettingsViewModel>;
         trayIcon.UpdateRequested += ShowWindow<DashboardViewModel>;
         trayIcon.RestartRequested += Restart;
-        trayIcon.ExitRequested += () => _ = ExitAsync();
+        trayIcon.ExitRequested += () =>
+        {
+            logger.LogInformation("Exit requested from the tray");
+            _ = ExitAsync();
+        };
 
         notifier.Clicked += ShowWindow<DashboardViewModel>;
         notifier.ShowInWindowRequested += (title, message, warning) => _window?.ShowNotification(title, message, warning);
@@ -89,6 +97,19 @@ public sealed class ApplicationHostService(
             logger.LogInformation("A restart launch asked this instance to exit");
             Dispatcher.UIThread.Post(() => _ = ExitAsync());
         };
+
+        // SIGTERM (kill, launchctl, a shutdown that does not go through Apple
+        // Events) ends the agent the orderly way too: offline announced to
+        // Home Assistant first. The default would end the process outright.
+        if (!OperatingSystem.IsWindows())
+        {
+            _terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
+            {
+                context.Cancel = true;
+                logger.LogInformation("SIGTERM received — exiting");
+                Dispatcher.UIThread.Post(() => _ = ExitAsync());
+            });
+        }
 
         trayIcon.Show();
     }
@@ -145,7 +166,15 @@ public sealed class ApplicationHostService(
         trayIcon.Dispose();
         _window?.Hide();
 
-        await Task.WhenAny(agentService.ShutdownAsync(), Task.Delay(ShutdownTimeout));
+        logger.LogInformation("Exiting");
+
+        // Bounded: a shutdown stuck behind a connect attempt must not keep the
+        // agent around — the broker's last will marks the device offline then.
+        var shutdown = agentService.ShutdownAsync();
+
+        if (await Task.WhenAny(shutdown, Task.Delay(ShutdownTimeout)) != shutdown)
+            logger.LogWarning("The agent did not shut down within {Timeout}; exiting anyway", ShutdownTimeout);
+
         await Serilog.Log.CloseAndFlushAsync();
 
         Environment.Exit(0);

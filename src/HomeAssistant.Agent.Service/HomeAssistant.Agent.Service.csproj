@@ -2,15 +2,23 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <!-- No UI is shown; WinForms is referenced so plugin discovery can
-             resolve the Windows plugin's WinForms/NAudio type graph. -->
-        <UseWindowsForms>true</UseWindowsForms>
         <AssemblyName>HomeAssistant.Agent.Service</AssemblyName>
         <RootNamespace>HomeAssistant.Agent.Service</RootNamespace>
         <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <!-- One target per system (HostOs, Directory.Build.props): the Windows
+         service, or the launchd daemon on macOS. -->
+    <PropertyGroup Condition="'$(HostOs)' == 'windows'">
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <!-- No UI is shown; WinForms is referenced so plugin discovery can
+             resolve the Windows plugin's WinForms/NAudio type graph. -->
+        <UseWindowsForms>true</UseWindowsForms>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(HostOs)' != 'windows'">
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,6 +27,9 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(HostOs)' == 'windows'">
         <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
         <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
     </ItemGroup>

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace HomeAssistant.Agent.Core.Updates;
 
@@ -159,10 +159,13 @@ public static class PluginOperations
     }
 
     // A bare "<name>.dll" inside the Plugins folder — never a path that leads
-    // out of it.
+    // out of it. Separators of either system are refused outright: on macOS a
+    // backslash is an ordinary character, and a name that is a path on
+    // Windows must not pass as a strange file name there.
     private static string ResolveTarget(string pluginsDirectory, string fileName)
     {
         if (fileName != Path.GetFileName(fileName)
+            || fileName.IndexOfAny(['\\', '/', ':']) >= 0
             || !fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
             || fileName.StartsWith('.'))
         {

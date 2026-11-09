@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -80,6 +80,11 @@ public sealed class TrayIconService : IDisposable
         DrawMenuIcons(application);
         application.ActualThemeVariantChanged += (_, _) => DrawMenuIcons(application);
 
+        // The menu bar shows a template image: black on transparent, which
+        // macOS tints for the light or the dark bar.
+        if (OperatingSystem.IsMacOS())
+            MacOSProperties.SetIsTemplateIcon(_trayIcon, true);
+
         TrayIcon.SetIcons(application, [_trayIcon]);
     }
 
@@ -145,7 +150,10 @@ public sealed class TrayIconService : IDisposable
     {
         try
         {
-            using var stream = AssetLoader.Open(new Uri("avares://HomeAssistant.Agent/Assets/icon.ico"));
+            // The colour icon on Windows; the silhouette of it on macOS.
+            var asset = OperatingSystem.IsMacOS() ? "tray-template.png" : "icon.ico";
+
+            using var stream = AssetLoader.Open(new Uri($"avares://HomeAssistant.Agent/Assets/{asset}"));
             return new WindowIcon(stream);
         }
         catch (Exception)

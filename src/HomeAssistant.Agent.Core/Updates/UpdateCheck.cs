@@ -83,7 +83,8 @@ public static class UpdateCheck
 
             foreach (var plugin in result.Index.Plugins)
             {
-                if (offers.ContainsKey(plugin.Code) || !TryParse(plugin.Version, out var version))
+                // Built for another OS: not offered here at all.
+                if (offers.ContainsKey(plugin.Code) || !plugin.IsSupportedHere || !TryParse(plugin.Version, out var version))
                     continue;
 
                 installed.TryGetValue(plugin.Code, out var installedVersion);
