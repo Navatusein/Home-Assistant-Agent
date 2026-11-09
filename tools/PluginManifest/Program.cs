@@ -1,4 +1,4 @@
-// Prints the catalog entry of a built plugin as JSON:
+﻿// Prints the catalog entry of a built plugin as JSON:
 //
 //   PluginManifest <plugin.dll> [--url <download url>] [--release-notes <url>]
 //                  [--icon-out <file.png>] [--icon-url <url>] [--out <entry.json>]
@@ -93,6 +93,7 @@ try
         ReleaseNotes = options.GetValueOrDefault("release-notes"),
         Homepage = info.Homepage?.AbsoluteUri,
         Repository = info.Repository?.AbsoluteUri,
+        Platforms = PluginPlatforms.Of(assembly) is { Count: > 0 } platforms ? platforms.ToArray() : null,
     };
 
     var json = JsonSerializer.Serialize(entry, JsonOptions.Default.CatalogPlugin);
@@ -140,6 +141,9 @@ internal sealed record CatalogPlugin
     public string? ReleaseNotes { get; init; }
     public string? Homepage { get; init; }
     public string? Repository { get; init; }
+
+    // Missing: any OS (see PluginPlatforms).
+    public string[]? Platforms { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

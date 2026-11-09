@@ -9,10 +9,18 @@ namespace HomeAssistant.Agent.Core.Plugins;
 
 public record PluginLoadError(string Source, string Message);
 
+// A plugin left out on purpose: built for another operating system.
+public record SkippedPlugin(string Source, IReadOnlyList<string> Platforms);
+
 // Loads plugins from dll files instead of project references. A plugin is a
-// single dll in PluginsDirectory with its dependencies embedded as resources;
-// a subdirectory holding the dll together with loose dependency files is also
-// supported (the main assembly is the dll named after the directory).
+// single dll with its dependencies embedded as resources; a subdirectory
+// holding the dll together with loose dependency files is also supported (the
+// main assembly is the dll named after the directory).
+//
+// Plugins come from one folder or several (AgentPaths.PluginDirectories: the
+// catalog-installed ones, then the bundled ones). A plugin found in an earlier
+// folder hides the same file in a later one, so a catalog update of a bundled
+// plugin wins over its copy in the app bundle.
 //
 // Every plugin it creates is initialized with its PluginContext straight away,
 // so the rest of the host never sees a plugin without one.
@@ -28,6 +36,7 @@ public class PluginManager
 
     private readonly List<BasePlugin> _plugins = [];
     private readonly List<PluginLoadError> _errors = [];
+    private readonly List<SkippedPlugin> _skipped = [];
 
     private readonly ILoggerFactory _loggerFactory;
     private readonly PersistentStore _store;
@@ -35,21 +44,34 @@ public class PluginManager
 
     public PluginHostMode HostMode { get; }
 
-    public string PluginsDirectory { get; }
+    // Where plugins load from, in order; ImportPlugin copies into the first.
+    public IReadOnlyList<string> PluginDirectories { get; }
+
+    public string PluginsDirectory => PluginDirectories[0];
 
     public IReadOnlyList<BasePlugin> Plugins => _plugins;
 
     public IReadOnlyList<PluginLoadError> Errors => _errors;
 
+    // Built for another operating system (the Windows plugin on a Mac): not an
+    // error, just not for this machine.
+    public IReadOnlyList<SkippedPlugin> Skipped => _skipped;
+
     public PluginManager(PluginHostMode hostMode, ILoggerFactory loggerFactory, PersistentStore store,
         string? pluginsDirectory = null)
+        : this(hostMode, loggerFactory, store, pluginsDirectory == null ? null : [pluginsDirectory])
+    {
+    }
+
+    public PluginManager(PluginHostMode hostMode, ILoggerFactory loggerFactory, PersistentStore store,
+        IReadOnlyList<string>? pluginDirectories)
     {
         HostMode = hostMode;
         _loggerFactory = loggerFactory;
         _store = store;
         _agentVersion = typeof(PluginManager).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
-        PluginsDirectory = pluginsDirectory ?? AgentPaths.PluginsDirectory;
+        PluginDirectories = pluginDirectories is { Count: > 0 } ? pluginDirectories : AgentPaths.PluginDirectories;
     }
 
     // "2.0" — the plugin API this host provides.
@@ -57,15 +79,35 @@ public class PluginManager
 
     public void LoadPlugins()
     {
-        Directory.CreateDirectory(PluginsDirectory);
+        // By name, so an earlier folder hides the same plugin in a later one.
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        foreach (var pluginsDirectory in PluginDirectories)
+        {
+            // The installed folder may not exist yet (no plugin from a catalog
+            // so far) and may not be ours to create (root's on macOS).
+            if (!Directory.Exists(pluginsDirectory))
+                continue;
+
+            LoadFrom(pluginsDirectory, seen);
+        }
+    }
+
+    private void LoadFrom(string pluginsDirectory, HashSet<string> seen)
+    {
         // Single-file plugins: dependencies are embedded in the dll.
-        foreach (var dll in Directory.GetFiles(PluginsDirectory, "*.dll"))
-            LoadPluginAssembly(dll);
+        foreach (var dll in Directory.GetFiles(pluginsDirectory, "*.dll"))
+        {
+            if (seen.Add(Path.GetFileNameWithoutExtension(dll)))
+                LoadPluginAssembly(dll);
+        }
 
         // Directory plugins: dependencies lie next to the main dll.
-        foreach (var directory in Directory.GetDirectories(PluginsDirectory))
+        foreach (var directory in Directory.GetDirectories(pluginsDirectory))
         {
+            if (!seen.Add(Path.GetFileName(directory)))
+                continue;
+
             var assemblyPath = FindPluginAssembly(directory);
 
             if (assemblyPath == null)
@@ -109,6 +151,16 @@ public class PluginManager
         {
             var context = new PluginLoadContext(assemblyPath);
             var assembly = context.LoadFromAssemblyPath(assemblyPath);
+
+            // Before anything else: a plugin for another OS fails in confusing
+            // ways (a missing WinForms) the moment its types are touched.
+            var platforms = PluginPlatforms.Of(assembly);
+
+            if (!PluginPlatforms.IsSupported(platforms))
+            {
+                _skipped.Add(new SkippedPlugin(assemblyPath, platforms));
+                return;
+            }
 
             // Reading the references touches no plugin type, so an
             // incompatible plugin is rejected before anything can fail to load.

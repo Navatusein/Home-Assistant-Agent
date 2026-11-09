@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- The system the agent is built for: the build machine's by default, or
+       set (-p:HostOs=macos) to check the macOS build from Windows. Picks the
+       target framework of the desktop app, the service, the tests and the
+       catalog tool (see their project files). src/Directory.Build.props
+       imports this file. -->
+  <PropertyGroup>
+    <HostOs Condition="'$(HostOs)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">windows</HostOs>
+    <HostOs Condition="'$(HostOs)' == '' And $([MSBuild]::IsOSPlatform('OSX'))">macos</HostOs>
+    <HostOs Condition="'$(HostOs)' == ''">linux</HostOs>
+  </PropertyGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace HomeAssistant.Agent.Core.Updates;
@@ -51,6 +51,13 @@ public sealed record CatalogPlugin
     public string? ReleaseNotes { get; init; }
     public string? Homepage { get; init; }
     public string? Repository { get; init; }
+
+    // The operating systems it runs on ("windows"); missing or empty: any.
+    // Written by tools/PluginManifest from the dll (see PluginPlatforms).
+    public IReadOnlyList<string>? Platforms { get; init; }
+
+    [JsonIgnore]
+    public bool IsSupportedHere => Plugins.PluginPlatforms.IsSupported(Platforms);
 
     // The dll's name in the Plugins folder: the last segment of its URL.
     [JsonIgnore]

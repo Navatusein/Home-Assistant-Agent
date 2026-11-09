@@ -68,7 +68,13 @@ namespace HomeAssistant.Agent.ViewModels.Pages
 
         public string AgentUpdateMessage => _updates.CanUpdateAgent
             ? $"You have {AgentVersion}. The update installs in the background and restarts the agent."
-            : $"You have {AgentVersion}. This is a portable copy: replace its folder with the new release.";
+            : Core.AgentPaths.IsPortable
+                ? $"You have {AgentVersion}. This is a portable copy: replace its folder with the new release."
+                : $"You have {AgentVersion}. Download the disk image and replace the app in Applications with the new one.";
+
+        // The release page: release notes where the agent updates itself, the
+        // download where it does not (macOS has no installer to run).
+        public string ReleaseLinkText => _updates.CanUpdateAgent || Core.AgentPaths.IsPortable ? "Release notes" : "Download";
 
         public bool CanInstallAgentUpdate => _updates.CanUpdateAgent;
 

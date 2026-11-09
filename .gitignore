@@ -505,3 +505,6 @@ $RECYCLE.BIN/
 
 # Working plans (the rest of docs/ is versioned)
 docs/PLAN-*.md
+
+# macOS Finder metadata
+.DS_Store

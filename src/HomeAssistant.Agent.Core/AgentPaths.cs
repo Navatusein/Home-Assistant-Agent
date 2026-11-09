@@ -57,9 +57,26 @@ public static class AgentPaths
     public static string GetStorageFile(PluginHostMode host) =>
         Path.Combine(DataDirectory, host == PluginHostMode.Service ? "PersistentStorage.Service.json" : "PersistentStorage.json");
 
-    // Bundled with the binaries; only an elevated step may add to it, since
-    // the service (SYSTEM) loads every dll it finds there.
-    public static string PluginsDirectory => Path.Combine(InstallDirectory, "Plugins");
+    // The plugins shipped with the agent, next to the binaries.
+    public static string BundledPluginsDirectory => Path.Combine(InstallDirectory, "Plugins");
+
+    // Where plugins from a catalog go. Only an elevated step may write there:
+    // the service (SYSTEM, root) loads every dll it finds.
+    //
+    // On Windows that is the bundled folder itself (Program Files is admin-only
+    // already). On macOS the app bundle must stay as it was signed and is
+    // replaced whole by an update, so they live with the data, in a folder the
+    // setup step gives to root. A portable copy keeps both next to itself.
+    public static string InstalledPluginsDirectory => OperatingSystem.IsMacOS() && !IsPortable
+        ? Path.Combine(DataDirectory, "Plugins")
+        : BundledPluginsDirectory;
+
+    // Every folder plugins load from, the installed ones first: a catalog
+    // update of a bundled plugin wins over the copy in the bundle.
+    public static IReadOnlyList<string> PluginDirectories =>
+        new[] { InstalledPluginsDirectory, BundledPluginsDirectory }
+            .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+            .ToArray();
 
     // Created on first use; an installer creates it up front with the access
     // rights the desktop app and the service both need.

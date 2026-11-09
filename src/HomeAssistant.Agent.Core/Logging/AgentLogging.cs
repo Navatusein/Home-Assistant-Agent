@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using HomeAssistant.Agent.Core.Plugins;
 using HomeAssistant.Agent.Plugin.Base;
 using Microsoft.Extensions.Logging;
@@ -92,7 +92,7 @@ public static class AgentLogging
             AgentPaths.IsPortable ? " (portable)" : string.Empty);
 
         logger.LogInformation("Loaded {Count} plugin(s) from {Directory}, plugin API {ApiVersion}",
-            pluginManager.Plugins.Count, pluginManager.PluginsDirectory, PluginManager.ApiVersion.ToString(2));
+            pluginManager.Plugins.Count, string.Join(", ", pluginManager.PluginDirectories), PluginManager.ApiVersion.ToString(2));
 
         foreach (var plugin in pluginManager.Plugins)
         {
@@ -106,6 +106,10 @@ public static class AgentLogging
 
         foreach (var error in pluginManager.Errors)
             logger.LogError("Plugin {PluginFile} failed to load: {Error}", error.Source, error.Message);
+
+        foreach (var skipped in pluginManager.Skipped)
+            logger.LogInformation("Plugin {PluginFile} is for {Platforms} — skipped on this system",
+                Path.GetFileName(skipped.Source), string.Join(", ", skipped.Platforms));
     }
 
     // Catches what escapes everything else:

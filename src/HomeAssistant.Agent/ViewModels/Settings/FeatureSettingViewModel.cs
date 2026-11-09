@@ -34,7 +34,7 @@ public partial class FeatureSettingViewModel : ObservableObject
     public string HostLabel => IsServiceFeature ? "Service" : "App";
 
     public string HostToolTip => IsServiceFeature
-        ? "Runs in the Windows service, also before sign-in."
+        ? "Runs in the background service, also before sign-in."
         : "Runs in the desktop app while you are signed in.";
 
     public IReadOnlyList<SettingControlViewModel> Controls { get; }

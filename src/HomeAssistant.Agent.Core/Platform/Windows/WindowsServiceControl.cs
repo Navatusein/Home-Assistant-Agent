@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.ServiceProcess;
 
 namespace HomeAssistant.Agent.Core.Platform.Windows;
@@ -9,8 +9,7 @@ namespace HomeAssistant.Agent.Core.Platform.Windows;
 [SupportedOSPlatform("windows")]
 public sealed class WindowsServiceControl(IElevatedLauncher elevation) : IBackgroundServiceControl
 {
-    private readonly string _executablePath =
-        Path.Combine(AgentPaths.InstallDirectory, WindowsServiceInfo.ExecutableName);
+    private readonly string _executablePath = BackgroundServiceInfo.ExecutablePath;
 
     public BackgroundServiceState GetState()
     {
@@ -23,7 +22,7 @@ public sealed class WindowsServiceControl(IElevatedLauncher elevation) : IBackgr
 
         try
         {
-            var service = services.FirstOrDefault(s => s.ServiceName == WindowsServiceInfo.ServiceName);
+            var service = services.FirstOrDefault(s => s.ServiceName == BackgroundServiceInfo.ServiceName);
 
             return service?.Status switch
             {
@@ -46,12 +45,9 @@ public sealed class WindowsServiceControl(IElevatedLauncher elevation) : IBackgr
     {
         var verb = action.ToString().ToLowerInvariant();
 
-        using var process = elevation.Start(_executablePath, [verb])
-            ?? throw new InvalidOperationException($"'{verb}' did not start");
+        var exitCode = await elevation.RunAsync(_executablePath, [verb]);
 
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"'{verb}' failed (exit code {process.ExitCode})");
+        if (exitCode != 0)
+            throw new InvalidOperationException($"'{verb}' failed (exit code {exitCode})");
     }
 }

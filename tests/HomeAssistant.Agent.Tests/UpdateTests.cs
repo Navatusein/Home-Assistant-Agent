@@ -143,6 +143,29 @@ public class UpdateCheckTests
         Assert.Null(result.FindPlugin("stale"));
     }
 
+    // The Windows plugin is not offered on a Mac, nor any plugin for an OS
+    // this is not.
+    [Fact]
+    public void Plugins_for_another_system_are_not_offered()
+    {
+        var foreign = Plugin("foreign", "1.0.0") with { Platforms = ["nosuchos"] };
+        var anywhere = Plugin("anywhere", "1.0.0") with { Platforms = [] };
+
+        var result = Evaluate(sources: Source(Official, null, foreign, anywhere, Plugin("plain", "1.0.0")));
+
+        Assert.Null(result.FindPlugin("foreign"));
+        Assert.NotNull(result.FindPlugin("anywhere"));
+        Assert.NotNull(result.FindPlugin("plain"));
+    }
+
+    [Fact]
+    public void Platforms_are_read_from_the_catalog()
+    {
+        var index = CatalogIndex.Parse("""{"plugins":[{"code":"w","name":"W","version":"1.0.0","apiVersion":"2.0","url":"https://x/w.dll","sha256":"00","platforms":["windows"]}]}""");
+
+        Assert.Equal(["windows"], index.Plugins[0].Platforms);
+    }
+
     [Theory]
     [InlineData("2.0", true)]
     [InlineData("2.0.5", true)]

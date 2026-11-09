@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="HomeAssistant.Agent.Views.Pages.SettingsPage"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -115,7 +115,7 @@
             </u:SettingsCard>
           </u:SettingsCardGroup>
 
-          <u:SettingsCardGroup Header="Windows service">
+          <u:SettingsCardGroup Header="{Binding WindowsService.Title}">
             <u:SettingsCard
               Content="Status"
               Description="Runs the agent before sign-in."

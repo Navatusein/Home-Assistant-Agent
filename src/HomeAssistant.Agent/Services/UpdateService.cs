@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using HomeAssistant.Agent.Core;
 using HomeAssistant.Agent.Core.Platform;
 using HomeAssistant.Agent.Core.Plugins;
@@ -159,15 +159,44 @@ public sealed class UpdateService : IDisposable
             requests.Add(new PluginInstall(file, plugin.Sha256, plugin.Code, plugin.Version, installs[i].Source.Url, plugin.FileName));
         }
 
+        if (!OperatingSystem.IsWindows())
+        {
+            await ChangePluginsInPlaceAsync(requests, removals, cancellationToken);
+            return;
+        }
+
         var request = new PluginRequest(requests, removals, Environment.ProcessId, Relaunch: "app");
         var arguments = PluginOperations.ToArguments(request);
 
         _logger.LogInformation("Applying plugin changes: {Arguments}", string.Join(' ', arguments.Skip(1)));
 
-        StartElevated(Path.Combine(AgentPaths.InstallDirectory, WindowsServiceInfo.ExecutableName), arguments);
+        StartElevated(BackgroundServiceInfo.ExecutablePath, arguments);
 
         // The dlls are locked while this app runs; the step waits for it.
         Avalonia.Threading.Dispatcher.UIThread.Post(_trayIcon.RequestExit);
+    }
+
+    // macOS: files in use can be replaced, so the step runs while the app
+    // waits for it — the password prompt is part of it, and a declined one
+    // comes back here as OperationCanceledException with the app still
+    // running. The app then restarts to load the plugins; the replacement
+    // shows the step's report.
+    private async Task ChangePluginsInPlaceAsync(IReadOnlyList<PluginInstall> installs,
+        IReadOnlyList<PluginRemoval> removals, CancellationToken cancellationToken)
+    {
+        var arguments = PluginOperations.ToArguments(new PluginRequest(installs, removals, WaitForProcess: null, Relaunch: null));
+
+        _logger.LogInformation("Applying plugin changes: {Arguments}", string.Join(' ', arguments.Skip(1)));
+
+        var exitCode = await _elevation.RunAsync(BackgroundServiceInfo.ExecutablePath, arguments, cancellationToken);
+
+        if (exitCode != 0)
+        {
+            var report = PluginOperations.TakeReport();
+            throw new InvalidOperationException(report?.Message ?? $"The plugin step failed (exit code {exitCode}).");
+        }
+
+        AgentRestart.Start();
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+﻿using HomeAssistant.Agent.Core.Platform.MacOS;
 using HomeAssistant.Agent.Core.Platform.Windows;
 
 namespace HomeAssistant.Agent.Core.Platform;
@@ -26,6 +27,20 @@ public sealed class PlatformServices
                 Elevation = elevation,
                 SingleInstance = new WindowsSingleInstance(),
                 Shell = new WindowsShell(),
+            };
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            var elevation = new MacElevatedLauncher();
+
+            return new PlatformServices
+            {
+                AutoStart = new MacAutoStart(),
+                BackgroundService = new MacServiceControl(elevation),
+                Elevation = elevation,
+                SingleInstance = new MacSingleInstance(),
+                Shell = new MacShell(),
             };
         }
 

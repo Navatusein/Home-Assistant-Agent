@@ -12,17 +12,36 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 
 // Management verbs, run elevated by the desktop app or the installer:
-// install | uninstall | start | stop | status, and plugins (PluginStep).
+// install | uninstall | start | stop | status (setup on macOS), and plugins
+// (PluginStep).
+ChildSignal.RestoreDefault();
+
 if (args.Length > 0)
 {
     return args[0] == PluginOperations.Verb
         ? PluginStep.Run(args)
-        : ServiceInstaller.Run(args[0]);
+        : ServiceManager.Run(args[0]);
 }
 
 // The same logging as the desktop app, into Logs\service-<date>.log next to
 // the app's own file in the shared data directory.
-AgentPaths.EnsureDataDirectory();
+// On macOS the shared data folder is made by "setup" (as root); until then
+// there is nowhere to log to, so the reason goes to stderr (launchd keeps it
+// in the system log) instead of an unhandled-exception crash.
+try
+{
+    AgentPaths.EnsureDataDirectory();
+}
+catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+{
+    Console.Error.WriteLine($"Cannot use the data folder {AgentPaths.DataDirectory}: {ex.Message}");
+
+    if (OperatingSystem.IsMacOS())
+        Console.Error.WriteLine("Run 'setup' as root first (the desktop app does it on its first start).");
+
+    return 1;
+}
+
 var loggerFactory = AgentLogging.Configure(PluginHostMode.Service);
 
 try
@@ -32,9 +51,13 @@ try
     builder.Logging.ClearProviders();
     builder.Logging.AddSerilog(Log.Logger);
 
+#if WINDOWS
     // Under the SCM this wires the service lifetime; started from a console the
     // host simply runs interactively, which doubles as the debug mode.
-    builder.Services.AddWindowsService(options => options.ServiceName = WindowsServiceInfo.ServiceName);
+    builder.Services.AddWindowsService(options => options.ServiceName = BackgroundServiceInfo.ServiceName);
+#endif
+    // Under launchd nothing is needed: it starts the process and stops it with
+    // SIGTERM, which the host's console lifetime already handles.
 
     // Own storage file: the desktop app writes PersistentStorage.json in the
     // same directory, and each process rewrites its file whole on save —
