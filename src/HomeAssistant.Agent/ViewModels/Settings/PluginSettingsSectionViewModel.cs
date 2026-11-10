@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using HomeAssistant.Agent.Core;
 using HomeAssistant.Agent.Core.Logging;
 using HomeAssistant.Agent.Core.Services;
 using HomeAssistant.Agent.Core.Settings;
@@ -28,6 +29,7 @@ public partial class PluginSettingsSectionViewModel : ObservableObject, ISetting
         Homepage = info.Homepage;
         Repository = info.Repository;
         PluginIcon = LoadIcon(info, plugin.PluginCode, logger);
+        PluginFileName = FindRemovableFile(plugin);
 
         _options = new PluginToolOptionsProvider(plugin, logger);
 
@@ -132,15 +134,27 @@ public partial class PluginSettingsSectionViewModel : ObservableObject, ISetting
 
     public string UpdateText => $"Update to {Update?.Plugin.Version}";
 
-    // Installed from a catalog (plugins.lock.json) — only those can be removed
-    // here; bundled plugins are switched off instead, an update would bring
-    // them back anyway.
-    [ObservableProperty]
-    private Core.Updates.PluginLock.Entry? _catalogEntry;
+    // The dll the plugin was loaded from, when it sits right in the installed
+    // plugins folder — whether it came from a catalog, an older installer or
+    // was copied in by hand. Null for a plugin that cannot be removed here: one
+    // in a folder of its own, or one inside the app bundle on macOS.
+    public string? PluginFileName { get; }
 
-    public bool CanRemove => CatalogEntry != null;
+    public bool CanRemove => PluginFileName != null;
 
-    partial void OnCatalogEntryChanged(Core.Updates.PluginLock.Entry? value) => OnPropertyChanged(nameof(CanRemove));
+    private static string? FindRemovableFile(BasePlugin plugin)
+    {
+        var location = plugin.GetType().Assembly.Location;
+
+        if (string.IsNullOrEmpty(location))
+            return null;
+
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetDirectoryName(location)!));
+        var installed = Path.TrimEndingDirectorySeparator(Path.GetFullPath(AgentPaths.InstalledPluginsDirectory));
+
+        return string.Equals(directory, installed, comparison) ? Path.GetFileName(location) : null;
+    }
 
     public string PluginCode => Name;
 
