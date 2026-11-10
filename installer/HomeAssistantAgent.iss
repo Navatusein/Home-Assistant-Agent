@@ -5,7 +5,8 @@
 ;
 ; Layout:
 ;   {app}                               Program Files\HomeAssistant Agent — binaries
-;                                       and the bundled plugins (Plugins\), admin-only
+;                                       and the plugins installed from a catalog
+;                                       (Plugins\), admin-only
 ;   {commonappdata}\HomeAssistantAgent  settings, plugin state, logs — shared by the
 ;                                       desktop app and the service, writable by users
 ;
@@ -74,11 +75,9 @@ Name: "{commonappdata}\{#DataFolder}"; Permissions: users-modify
 Name: "{commonappdata}\{#DataFolder}\Logs"; Permissions: users-modify
 
 [Files]
-; Everything except the plugins...
+; No plugins ship with the agent; the ones installed from a catalog sit in
+; {app}\Plugins and are left alone by an update.
 Source: "{#SourceDir}\*"; Excludes: "Plugins\*,portable"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; ...which go in by name: plugins installed from a catalog sit in the same
-; folder and are left alone by an update.
-Source: "{#SourceDir}\Plugins\*.dll"; DestDir: "{app}\Plugins"; Flags: ignoreversion
 
 [Registry]
 ; The name and icon Windows notifications show for the agent. The app writes
