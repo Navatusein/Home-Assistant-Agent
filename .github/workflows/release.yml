@@ -23,12 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The bundled plugins (see build/Publish.ps1).
-      - uses: actions/checkout@v4
-        with:
-          repository: Navatusein/Home-Assistant-Agent-Plugins
-          path: .plugins
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -46,7 +40,7 @@ jobs:
 
       - name: Publish
         shell: pwsh
-        run: ./build/Publish.ps1 -Version '${{ steps.version.outputs.version }}' -PluginsRepo .plugins
+        run: ./build/Publish.ps1 -Version '${{ steps.version.outputs.version }}'
 
       # Inno Setup 6 is preinstalled on the Windows runners.
       - name: Installer
@@ -103,11 +97,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: Navatusein/Home-Assistant-Agent-Plugins
-          path: .plugins
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -116,7 +105,7 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ github.ref_name }}'.TrimStart('v')
-          ./build/Publish-MacOS.ps1 -Version $version -PluginsRepo .plugins
+          ./build/Publish-MacOS.ps1 -Version $version
 
       - name: Add to the release
         shell: pwsh

@@ -72,13 +72,10 @@ namespace HomeAssistant.Agent.ViewModels.Pages
         private void RefreshCatalog()
         {
             var result = _updates.Result;
-            var lockEntries = new Core.Updates.PluginLock(Core.Updates.PluginLock.DefaultPath).Read();
-
             foreach (var section in PluginSections)
             {
                 var offer = result.FindPlugin(section.PluginCode);
                 section.Update = offer?.State == Core.Updates.PluginOfferState.UpdateAvailable ? offer : null;
-                section.CatalogEntry = lockEntries.GetValueOrDefault(section.PluginCode);
             }
 
             AvailablePlugins.Clear();
@@ -133,9 +130,9 @@ namespace HomeAssistant.Agent.ViewModels.Pages
 
         [RelayCommand]
         private Task RemovePluginAsync(PluginSettingsSectionViewModel? section) =>
-            section?.CatalogEntry is not { } entry
+            section?.PluginFileName is not { } fileName
                 ? Task.CompletedTask
-                : ChangePluginsAsync([], [new Core.Updates.PluginRemoval(section.PluginCode, entry.FileName)],
+                : ChangePluginsAsync([], [new Core.Updates.PluginRemoval(section.PluginCode, fileName)],
                     $"Remove {section.Title}? Its entities disappear from Home Assistant, and the agent restarts.");
 
         // Plugin files are admin-only and locked while the agent runs: after

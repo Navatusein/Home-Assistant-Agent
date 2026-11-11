@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
-    Builds the agent for macOS: Home Assistant Agent.app with the desktop app,
-    the launchd service and the bundled plugins — as a disk image on a Mac, or
-    as a zip to finish on the Mac when built elsewhere.
+    Builds the agent for macOS: Home Assistant Agent.app with the desktop app
+    and the launchd service — as a disk image on a Mac, or as a zip to finish
+    on the Mac when built elsewhere. No plugins: they are installed from a
+    catalog.
 
 .DESCRIPTION
     The layout (see docs/PLAN-macos.md):
@@ -10,7 +11,7 @@
         Home Assistant Agent.app/Contents/
           Info.plist            LSUIElement: a menu bar app, no Dock icon
           MacOS/                the app and the service, self-contained
-                                osx-arm64, sharing one runtime; Plugins/
+                                osx-arm64, sharing one runtime
           Resources/icon.icns
 
     On a Mac (PowerShell 7) the bundle is signed ad hoc and packed into
@@ -28,10 +29,6 @@
     The agent is not notarized: the first start of a downloaded disk image
     needs "Open Anyway" in System Settings > Privacy & Security.
 
-    The bundled plugins come from Home-Assistant-Agent-Plugins (-PluginsRepo),
-    built against the plugin API of this checkout; the Windows plugin is left
-    out.
-
 .EXAMPLE
     ./build/Publish-MacOS.ps1 -Version 1.2.0
 #>
@@ -39,8 +36,7 @@ param(
     [string] $Version = '1.0.0',
     [string] $Configuration = 'Release',
     [string] $Runtime = 'osx-arm64',
-    [string] $Output = (Join-Path $PSScriptRoot '../artifacts/macos'),
-    [string] $PluginsRepo = (Join-Path $PSScriptRoot '../../Home-Assistant-Agent-Plugins')
+    [string] $Output = (Join-Path $PSScriptRoot '../artifacts/macos')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,12 +44,6 @@ Set-StrictMode -Version Latest
 
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $src = Join-Path $root 'src'
-
-if (-not (Test-Path (Join-Path $PluginsRepo 'src'))) { throw "The plugins repository is not found at $PluginsRepo (pass -PluginsRepo)." }
-$pluginsSrc = Join-Path (Resolve-Path $PluginsRepo) 'src'
-
-# The plugins shipped with the agent on macOS: all but the Windows one.
-$plugins = 'Discord', 'Logitech', 'Obs', 'Teams'
 
 $appName = 'Home Assistant Agent'
 $bundleId = 'com.navatusein.homeassistant-agent'
@@ -152,26 +142,6 @@ Invoke-Native dotnet publish (Join-Path $src 'HomeAssistant.Agent/HomeAssistant.
 Write-Host "Publishing the service $Version"
 Invoke-Native dotnet publish (Join-Path $src 'HomeAssistant.Agent.Service/HomeAssistant.Agent.Service.csproj') @publish
 
-$pluginsOutput = Join-Path $macOS 'Plugins'
-New-Item $pluginsOutput -ItemType Directory -Force | Out-Null
-
-foreach ($plugin in $plugins) {
-    $project = Join-Path $pluginsSrc "HomeAssistant.Agent.Plugin.$plugin/HomeAssistant.Agent.Plugin.$plugin.csproj"
-
-    Write-Host "Building plugin $plugin"
-    # Against this checkout's API; no copy into the local agent's Plugins.
-    Invoke-Native dotnet build $project -c $Configuration "-p:AgentRepoPath=$root/" '-p:AgentHostOutput='
-
-    # One self-contained dll per plugin (dependencies embedded).
-    $dll = Get-ChildItem (Join-Path $pluginsSrc "HomeAssistant.Agent.Plugin.$plugin/bin/$Configuration") `
-        -Recurse -Filter "HomeAssistant.Agent.Plugin.$plugin.dll" |
-        Sort-Object LastWriteTime -Descending | Select-Object -First 1
-
-    if (-not $dll) { throw "No build output found for plugin $plugin" }
-
-    Copy-Item $dll.FullName $pluginsOutput
-}
-
 # A development marker must never ship: it would keep the data inside the
 # (read-only, signed) bundle. Debug symbols stay out too.
 Remove-Item (Join-Path $macOS 'portable') -ErrorAction SilentlyContinue
@@ -247,7 +217,7 @@ if ($IsMacOS) {
 
     # Every file in Contents/MacOS counts as code to codesign, the managed
     # dlls and the json files too (their signature goes into an extended
-    # attribute), so all of them, the plugins included.
+    # attribute), so all of them.
     $executables = 'HomeAssistant.Agent', 'HomeAssistant.Agent.Service' |
         ForEach-Object { [IO.Path]::GetFullPath((Join-Path $macOS $_)) }
     foreach ($file in Get-ChildItem $macOS -File -Recurse | Where-Object { $_.FullName -notin $executables }) {

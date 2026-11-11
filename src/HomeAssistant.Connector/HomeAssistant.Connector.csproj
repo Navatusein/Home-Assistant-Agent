@@ -6,9 +6,9 @@
         <Nullable>enable</Nullable>
 
         <!-- Part of the plugin API (see Plugin.Base): same versioning rule.
-             2.0: IEntity.Detach. -->
-        <AssemblyVersion>2.0.0.0</AssemblyVersion>
-        <FileVersion>2.0.0.0</FileVersion>
+             2.0: IEntity.Detach. 2.1: BaseEntity.PublishDefaultState. -->
+        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <FileVersion>2.1.0.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>

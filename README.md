@@ -9,7 +9,8 @@ plugins.
 The official plugins live in
 [Home-Assistant-Agent-Plugins](https://github.com/Navatusein/Home-Assistant-Agent-Plugins):
 Windows (volume, audio devices, media, power, launchers, hotkeys, clipboard), Discord, Microsoft
-Teams, OBS Studio and Logitech G HUB. They ship with the installer and update on their own.
+Teams, OBS Studio and Logitech G HUB. None ship with the installer: install the ones you need from
+the catalog in Settings → Plugins; they update on their own.
 
 More catalogs can be added under Settings → Plugins → Sources. A third-party plugin is built
 with the [plugin SDK](src/HomeAssistant.Agent.Plugin.Sdk/README.md).
@@ -57,7 +58,7 @@ To work on the plugins too, check out
 this repository and open `HomeAssistant.Agent.Workspace.sln`: the plugins build against these
 sources and land in the app's `Plugins` folder.
 
-`build/Publish.ps1` produces what the installer packs, bundled plugins included;
+`build/Publish.ps1` produces what the installer packs (no plugins: they come from a catalog);
 `build/Publish-MacOS.ps1` the macOS app bundle — on a Mac packed into the disk image; on Windows
 into a zip with `prepare.sh`, which signs and installs the app on the Mac
 (`unzip <zip> -d agent && sh agent/prepare.sh`).
