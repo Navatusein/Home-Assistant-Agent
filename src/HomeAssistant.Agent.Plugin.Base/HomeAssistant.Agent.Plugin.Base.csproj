@@ -11,10 +11,11 @@
              against in its assembly references, and PluginManager accepts it
              when the major matches and the minor is not newer than this one.
              Bump the minor for additions, the major for breaking changes
-             (2.0: PluginContext replaced the static logger and storage). The
+             (2.0: PluginContext replaced the static logger and storage; 2.1:
+             BaseEntity.PublishDefaultState). The
              same rule covers HomeAssistant.Connector's version. -->
-        <AssemblyVersion>2.0.0.0</AssemblyVersion>
-        <FileVersion>2.0.0.0</FileVersion>
+        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <FileVersion>2.1.0.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>

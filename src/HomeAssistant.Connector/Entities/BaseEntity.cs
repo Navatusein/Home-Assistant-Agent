@@ -23,6 +23,11 @@ public abstract class BaseEntity: IEntity
     public required string BaseTopic { get; init; }
     public string? Icon { get; init; }
 
+    // False for an entity whose feature publishes the real state as soon as
+    // it is enabled: the default would show up first for a moment — a false
+    // "locked" or "volume 0" that automations in Home Assistant react to.
+    public bool PublishDefaultState { get; init; } = true;
+
     protected EntityContext Context =>
         _context ?? throw new InvalidOperationException($"Entity '{UniqueId}' is used before it was bound to a device.");
 
@@ -38,7 +43,9 @@ public abstract class BaseEntity: IEntity
         MqttClient = mqttClient;
 
         await SetAvailableAsync(false);
-        await PublishInitialStateAsync();
+        if (PublishDefaultState)
+            await PublishInitialStateAsync();
+
         await SubscribeControlTopicAsync();
     }
 
