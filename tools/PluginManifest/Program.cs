@@ -40,8 +40,13 @@ try
     var pluginPath = Path.Combine(work.FullName, Path.GetFileName(dllPath));
     File.Copy(dllPath, pluginPath);
 
+    // The release runner is Windows: a macOS plugin must load here as well.
+    // Its constructor only builds features, so it runs on any system.
     var manager = new PluginManager(PluginHostMode.Desktop, NullLoggerFactory.Instance,
-        PersistentStore.Load(Path.Combine(work.FullName, "store.json")), work.FullName);
+        PersistentStore.Load(Path.Combine(work.FullName, "store.json")), work.FullName)
+    {
+        LoadAnyPlatform = true
+    };
 
     manager.LoadPlugins();
 

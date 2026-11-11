@@ -57,6 +57,10 @@ public class PluginManager
     // error, just not for this machine.
     public IReadOnlyList<SkippedPlugin> Skipped => _skipped;
 
+    // Loads plugins of every OS. For tools/PluginManifest, which describes
+    // any plugin on the release runner; a host never sets it.
+    public bool LoadAnyPlatform { get; init; }
+
     public PluginManager(PluginHostMode hostMode, ILoggerFactory loggerFactory, PersistentStore store,
         string? pluginsDirectory = null)
         : this(hostMode, loggerFactory, store, pluginsDirectory == null ? null : [pluginsDirectory])
@@ -156,7 +160,7 @@ public class PluginManager
             // ways (a missing WinForms) the moment its types are touched.
             var platforms = PluginPlatforms.Of(assembly);
 
-            if (!PluginPlatforms.IsSupported(platforms))
+            if (!LoadAnyPlatform && !PluginPlatforms.IsSupported(platforms))
             {
                 _skipped.Add(new SkippedPlugin(assemblyPath, platforms));
                 return;
