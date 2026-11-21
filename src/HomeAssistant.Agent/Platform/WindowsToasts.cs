@@ -28,9 +28,10 @@ internal sealed class WindowsToasts
         _notifier = ToastNotificationManager.CreateToastNotifier(AppId);
     }
 
+    // A toast without a click action of its own was clicked.
     public event Action? Activated;
 
-    public void Show(string title, string message)
+    public void Show(string title, string message, Action? clicked = null)
     {
         var xml = new XmlDocument();
         xml.LoadXml(
@@ -40,7 +41,7 @@ internal sealed class WindowsToasts
             + "</binding></visual></toast>");
 
         var toast = new ToastNotification(xml);
-        toast.Activated += (_, _) => Activated?.Invoke();
+        toast.Activated += (_, _) => (clicked ?? Activated)?.Invoke();
 
         _notifier.Show(toast);
     }

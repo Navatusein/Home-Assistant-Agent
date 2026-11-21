@@ -123,7 +123,10 @@ public partial class App : Application
                 var pluginManager = new PluginManager(
                     PluginHostMode.Desktop,
                     provider.GetRequiredService<ILoggerFactory>(),
-                    provider.GetRequiredService<PersistentStore>());
+                    provider.GetRequiredService<PersistentStore>())
+                {
+                    Notifier = provider.GetRequiredService<IUserNotifier>()
+                };
 
                 pluginManager.LoadPlugins();
                 return pluginManager;

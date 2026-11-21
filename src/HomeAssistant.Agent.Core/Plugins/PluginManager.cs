@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using HomeAssistant.Agent.Core.Logging;
+using HomeAssistant.Agent.Core.Platform;
 using HomeAssistant.Agent.Core.Storage;
 using HomeAssistant.Agent.Plugin.Base;
 using HomeAssistant.Connector;
@@ -60,6 +61,9 @@ public class PluginManager
     // Loads plugins of every OS. For tools/PluginManifest, which describes
     // any plugin on the release runner; a host never sets it.
     public bool LoadAnyPlatform { get; init; }
+
+    // Shows the plugins' notifications. None in the service: they go to the log.
+    public IUserNotifier? Notifier { get; init; }
 
     public PluginManager(PluginHostMode hostMode, ILoggerFactory loggerFactory, PersistentStore store,
         string? pluginsDirectory = null)
@@ -231,6 +235,7 @@ public class PluginManager
             LoggerFactory = _loggerFactory,
             Storage = new PluginStorage(_store, plugin.PluginCode),
             AgentVersion = _agentVersion,
+            Notifier = new PluginNotifier(Notifier, _loggerFactory.CreateLogger($"{plugin.GetType().Assembly.GetName().Name}.Notifications")),
         });
 
         _plugins.Add(plugin);

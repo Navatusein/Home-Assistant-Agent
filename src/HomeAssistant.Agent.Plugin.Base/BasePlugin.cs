@@ -40,6 +40,9 @@ public abstract class BasePlugin
     // Key-value state that survives a restart, private to this plugin.
     protected IPluginStorage Storage => Context.Storage;
 
+    // System notifications: a toast on Windows, a banner on macOS.
+    protected IPluginNotifier Notifier => Context.Notifier;
+
     // Plugins log only through this abstraction; the logging backend stays a
     // host concern.
     protected ILogger<T> CreateLogger<T>() => Context.LoggerFactory.CreateLogger<T>();
