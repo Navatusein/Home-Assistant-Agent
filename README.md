@@ -78,7 +78,7 @@ into a zip with `prepare.sh`, which signs and installs the app on the Mac
 | Tag        | Releases                                                    |
 |------------|-------------------------------------------------------------|
 | `v1.2.0`   | The agent: installer and macOS disk image, GitHub release, entry in the catalog |
-| `sdk/v2.2.0` | The plugin SDK package on nuget.org                       |
+| `sdk/v2.3.0` | The plugin SDK package on nuget.org                       |
 
 ## License
 
