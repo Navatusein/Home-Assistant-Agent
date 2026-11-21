@@ -46,30 +46,84 @@ public sealed class DesktopNotifier : IUserNotifier
     // No system notifications here: the window should show it. UI thread.
     public event Action<string, string, bool>? ShowInWindowRequested;
 
-    public void Show(string title, string message, bool warning = false, Uri? link = null)
+    // Pictures and buttons: Windows toasts only.
+#if WINDOWS
+    public bool ShowsImagesAndActions => _toasts != null;
+#else
+    public bool ShowsImagesAndActions => false;
+#endif
+
+    public void Show(string title, string message, bool warning = false, Uri? link = null) =>
+        Show(new UserNotification(title, message) { Warning = warning, Link = link });
+
+    public void Show(UserNotification notification)
     {
+        var (title, message) = (notification.Title, notification.Message);
+
         _logger.LogInformation("Notification: {Title} — {Message}", title, message);
 
 #if WINDOWS
         if (_toasts != null && OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
         {
-            try
+            // The logo is made square first, off the caller's thread.
+            if (notification.IconFile is { } icon)
             {
-                _toasts.Show(title, message, link == null ? null : () => Open(link));
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        notification = notification with { IconFile = await Platform.ToastPictures.SquareAsync(icon) };
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("The icon of a notification could not be made square: {Error}", ex.Message);
+                    }
+
+                    if (!TryShowToast(notification))
+                        ShowInWindow(notification);
+                });
+
                 return;
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "The notification could not be shown");
-            }
+
+            if (TryShowToast(notification))
+                return;
         }
 #endif
 
         if (OperatingSystem.IsMacOS() && TryShowOnMac(title, message))
             return;
 
-        Dispatcher.UIThread.Post(() => ShowInWindowRequested?.Invoke(title, message, warning));
+        ShowInWindow(notification);
     }
+
+    private void ShowInWindow(UserNotification notification) =>
+        Dispatcher.UIThread.Post(() => ShowInWindowRequested?.Invoke(notification.Title, notification.Message, notification.Warning));
+
+#if WINDOWS
+    private bool TryShowToast(UserNotification notification)
+    {
+        try
+        {
+            var link = notification.Link;
+            var actions = notification.Actions
+                .Select(action => (action.Label, Clicked: ActionOf(action)))
+                .ToArray();
+
+            _toasts!.Show(notification.Title, notification.Message, link == null ? null : () => Open(link),
+                notification.ImageFile, actions, notification.IconFile);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The notification could not be shown");
+            return false;
+        }
+    }
+#endif
+
+    private Action ActionOf(UserNotificationAction action) =>
+        action.Link is { } link ? () => Open(link) : action.Clicked ?? (() => { });
 
     private void Open(Uri link)
     {
