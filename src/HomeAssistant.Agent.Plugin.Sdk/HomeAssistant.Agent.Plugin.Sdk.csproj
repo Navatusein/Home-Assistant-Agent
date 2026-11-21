@@ -2,7 +2,7 @@
 
     <!-- The package a plugin outside this repository references:
 
-           <PackageReference Include="HomeAssistant.Agent.Plugin.Sdk" Version="2.2.*" />
+           <PackageReference Include="HomeAssistant.Agent.Plugin.Sdk" Version="2.3.*" />
 
          It carries the plugin API (Plugin.Base and Connector) to compile
          against — as reference assemblies only, since the agent provides them
@@ -10,14 +10,14 @@
          metadata, and packing the plugin's own dependencies into its dll.
 
          The package version is the plugin API version (Plugin.Base's
-         AssemblyVersion): 2.2.x builds plugins for agents with API 2.2 or a
+         AssemblyVersion): 2.3.x builds plugins for agents with API 2.3 or a
          newer 2.x. -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <IsPackable>true</IsPackable>
         <PackageId>HomeAssistant.Agent.Plugin.Sdk</PackageId>
-        <Version>2.2.0</Version>
+        <Version>2.3.0</Version>
         <Description>Build plugins for Home Assistant Agent: the plugin API to compile against and the build targets that turn a class library into a single-dll plugin.</Description>
         <PackageTags>home-assistant;mqtt;plugin;home-assistant-agent</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>

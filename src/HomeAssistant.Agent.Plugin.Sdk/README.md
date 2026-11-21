@@ -13,7 +13,7 @@ dotnet new ha-agent-plugin -n MyPlugin --code my-plugin
 Or reference the SDK from any class library:
 
 ```xml
-<PackageReference Include="HomeAssistant.Agent.Plugin.Sdk" Version="2.2.*" />
+<PackageReference Include="HomeAssistant.Agent.Plugin.Sdk" Version="2.3.*" />
 ```
 
 ## What the package does
@@ -39,6 +39,6 @@ Or reference the SDK from any class library:
 
 ## Versions
 
-The package version is the plugin API version. A plugin built with `2.2.x` runs on any agent
+The package version is the plugin API version. A plugin built with `2.3.x` runs on any agent
 with plugin API `2.x` of the same or a newer minor version; the agent rejects it otherwise with
 a clear message instead of failing at run time.
