@@ -36,8 +36,8 @@ needs no *Open Anyway*.
 Or by hand: `HomeAssistantAgent-<version>-macos-arm64.dmg`, drag the app to Applications. The app is not notarized: the first start is blocked — open System
 Settings → Privacy & Security and choose *Open Anyway*. On that first start the agent asks for an
 administrator password once, to create its data folder. It lives in the menu bar; the background
-service (a launchd daemon) is installed from Settings. New versions are downloaded from the
-releases page; plugins update on their own. The Windows plugin is Windows-only.
+service (a launchd daemon) is installed from Settings. The agent updates itself and its plugins,
+asking for the administrator password; the Windows plugin is Windows-only.
 
 ## Repository
 

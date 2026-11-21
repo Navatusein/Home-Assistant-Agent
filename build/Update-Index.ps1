@@ -7,8 +7,10 @@
     stable address
         https://github.com/<owner>/<repo>/releases/download/index/index.json
     The agent reads it to offer plugins and updates. This script updates one
-    entry in it: the agent's own block (-Kind agent, official repository only)
-    or a plugin, matched by its code (-Kind plugin).
+    entry in it: the agent's own block (-Kind agent, official repository only),
+    the macOS disk image of the agent's current version within that block
+    (-Kind agent-macos, written after it by the release's macOS job) or a
+    plugin, matched by its code (-Kind plugin).
 
     With -Repository it works on the release through the GitHub CLI (gh),
     creating the "index" release on first use. With -IndexFile it works on a
@@ -18,7 +20,7 @@
     ./build/Update-Index.ps1 -Kind plugin -EntryFile entry.json -Repository Navatusein/Home-Assistant-Agent
 #>
 param(
-    [Parameter(Mandatory)] [ValidateSet('agent', 'plugin')] [string] $Kind,
+    [Parameter(Mandatory)] [ValidateSet('agent', 'agent-macos', 'plugin')] [string] $Kind,
     [Parameter(Mandatory)] [string] $EntryFile,
     [string] $Repository,
     [string] $IndexFile
@@ -71,6 +73,19 @@ $entry = Get-Content $EntryFile -Raw | ConvertFrom-Json -AsHashtable
 if ($Kind -eq 'agent') {
     $index['agent'] = $entry
     Write-Host "Agent: $($entry['version'])"
+}
+elseif ($Kind -eq 'agent-macos') {
+    # Only into the entry of its own version: a Mac must never be offered
+    # another version's image, nor one for a version the entry no longer has.
+    $agent = if ($index.Contains('agent')) { $index['agent'] } else { $null }
+
+    if ($null -eq $agent -or $agent['version'] -ne $entry['version']) {
+        $listed = if ($null -eq $agent) { 'no agent' } else { "agent $($agent['version'])" }
+        throw "The catalog lists $listed, not $($entry['version']): the macOS image goes into its own version's entry only."
+    }
+
+    $agent['macos'] = [ordered]@{ url = $entry['url']; sha256 = $entry['sha256'] }
+    Write-Host "Agent $($entry['version']) for macOS"
 }
 else {
     if (-not $entry['code']) { throw "The plugin entry has no code." }

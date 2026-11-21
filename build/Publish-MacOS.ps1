@@ -13,6 +13,7 @@
           MacOS/                the app and the service, self-contained
                                 osx-arm64, sharing one runtime
           Resources/icon.icns
+          Resources/install-macos.sh   what the updater runs (build/)
 
     On a Mac (PowerShell 7) the bundle is signed ad hoc and packed into
     HomeAssistantAgent-<version>-macos-arm64.dmg with a link to /Applications.
@@ -167,6 +168,10 @@ if ($IsMacOS) {
 else {
     New-Icns $png $icns
 }
+
+# The updater runs it to replace the bundle (UpdateService); it has LF line
+# endings in every checkout (.gitattributes), which bash needs.
+Copy-Item (Join-Path $PSScriptRoot 'install-macos.sh') (Join-Path $resources 'install-macos.sh')
 
 Write-Host 'Writing Info.plist'
 Write-UnixText (Join-Path $contents 'Info.plist') @"
