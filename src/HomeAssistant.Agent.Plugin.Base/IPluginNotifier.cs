@@ -17,4 +17,27 @@ public sealed record PluginNotification(string Title, string Message)
 
     // Wants the user now: a failure, a code to type in.
     public bool Important { get; init; }
+
+    // A picture shown in the notification (Windows; API 2.3): an http or
+    // https address the agent downloads first. One it cannot get — too
+    // large, not an image, unreachable — leaves the notification without it.
+    public Uri? Image { get; init; }
+
+    // A small square picture in place of the agent's icon (Windows; API 2.3):
+    // the sender's logo. Fetched as Image is.
+    public Uri? Icon { get; init; }
+
+    // Buttons (Windows; API 2.3): the first five are shown, as many as a
+    // toast holds. macOS shows the notification without them.
+    public IReadOnlyList<PluginNotificationAction> Actions { get; init; } = [];
+}
+
+// A button of a notification: opens Link (http and https only, as the
+// notification's own), or runs Clicked — the plugin's own code, on a thread
+// of the agent's; an exception it throws is logged.
+public sealed record PluginNotificationAction(string Label)
+{
+    public Uri? Link { get; init; }
+
+    public Func<Task>? Clicked { get; init; }
 }
