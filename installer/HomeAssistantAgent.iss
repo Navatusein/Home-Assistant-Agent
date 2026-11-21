@@ -34,6 +34,8 @@
 ; The value the app writes for "Start with Windows" (AutoStart.RunValueName).
 #define RunValueName "HomeAssistantAgent"
 #define RepositoryUrl "https://github.com/Navatusein/Home-Assistant-Agent"
+; Inbound firewall rule of the desktop app (see AllowInbound).
+#define FirewallRule "Home Assistant Agent"
 
 [Setup]
 ; Never change: Windows recognises installed versions by it.
@@ -97,6 +99,7 @@ Filename: "{app}\{#AppExe}"; Description: "Start {#AppName}"; Flags: nowait post
 ; elevated uninstaller.
 Filename: "{app}\{#AppExe}"; Parameters: "--shutdown"; Flags: waituntilterminated; RunOnceId: "StopAgent"
 Filename: "{app}\{#ServiceExe}"; Parameters: "uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveService"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#FirewallRule}"""; Flags: runhidden waituntilterminated; RunOnceId: "RemoveFirewallRule"
 
 [Code]
 var
@@ -141,14 +144,38 @@ begin
     RunService('stop');
 end;
 
+procedure Netsh(const Parameters: String);
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\netsh.exe'), Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+// Lets the network reach the desktop app: a plugin that is reached from the
+// network (Music Assistant connects to the Sendspin player, over TCP, and
+// finds it over mDNS, UDP 5353) would otherwise wait for Windows to ask the
+// user, who cannot allow it without being an administrator. Every protocol of
+// this one program, on private and domain networks only — a public network is
+// left to that prompt. Rewritten on every install, so it follows {app}.
+procedure AllowInbound();
+begin
+  Netsh('advfirewall firewall delete rule name="{#FirewallRule}"');
+  Netsh(ExpandConstant('advfirewall firewall add rule name="{#FirewallRule}" dir=in action=allow ' +
+    'program="{app}\{#AppExe}" profile=private,domain enable=yes'));
+end;
+
 // After the files are in place: (re)register the service when it was there
 // before or is asked for now. "install" also points an existing service at
 // this folder — an update, or a move from a development build.
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
+  begin
+    AllowInbound();
+
     if ServiceWasInstalled or WizardIsTaskSelected('service') then
       RunService('install');
+  end;
 end;
 
 // The data in ProgramData stays (settings, pairing tokens): a reinstall picks
