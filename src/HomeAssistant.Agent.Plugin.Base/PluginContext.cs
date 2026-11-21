@@ -22,4 +22,7 @@ public sealed class PluginContext
 
     // Version of the agent the plugin runs in, e.g. for a user agent string.
     public required string AgentVersion { get; init; }
+
+    // System notifications (API 2.2).
+    public required IPluginNotifier Notifier { get; init; }
 }

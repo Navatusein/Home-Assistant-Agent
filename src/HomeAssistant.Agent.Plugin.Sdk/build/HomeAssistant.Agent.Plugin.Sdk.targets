@@ -37,6 +37,15 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- The systems a plugin carries platform-specific dependencies for (a
+       package's runtimes/<rid>/native and runtimes/<rid>/lib): those the agent
+       is released for. A plugin may set its own. Managed ones built for a
+       family of them ("win", "osx", "unix") are kept too; everything else
+       (linux-arm, ios-arm64, ...) is left out. -->
+  <PropertyGroup>
+    <AgentPluginRuntimes Condition="'$(AgentPluginRuntimes)' == ''">win-x64;osx-arm64</AgentPluginRuntimes>
+  </PropertyGroup>
+
   <!-- Packs the plugin's own dependencies (NAudio, Newtonsoft.Json, ...) into
        its dll as embedded resources; PluginLoadContext loads them from there,
        so the plugin ships as a single file. -->
@@ -46,6 +55,8 @@
           Condition="'$(AgentPlugin)' == 'true'">
     <PropertyGroup>
       <_AgentHostAssemblyNames>;@(AgentHostAssembly);</_AgentHostAssemblyNames>
+      <_AgentPluginRuntimes>;$(AgentPluginRuntimes);</_AgentPluginRuntimes>
+      <_AgentPluginManagedRuntimes>$(_AgentPluginRuntimes)win;osx;unix;</_AgentPluginManagedRuntimes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -53,10 +64,27 @@
                             Condition="'%(Extension)' == '.dll' And $(_AgentHostAssemblyNames.Contains(';%(Filename);'))" />
       <_AgentPluginEmbed Include="@(ReferenceCopyLocalPaths)" Exclude="@(_AgentPluginHostFile)"
                          Condition="'%(Extension)' == '.dll'" />
+      <!-- Separately: batching on metadata would drop the Exclude above. -->
+      <_AgentPluginEmbed Remove="@(_AgentPluginEmbed)" Condition="'%(_AgentPluginEmbed.AssetType)' == 'native'" />
 
-      <EmbeddedResource Include="@(_AgentPluginEmbed)">
+      <!-- A package's builds for one system come under the same file name:
+           each under its runtime, the one for the running system wins. -->
+      <_AgentPluginEmbedAnyRuntime Include="@(_AgentPluginEmbed)" Condition="'%(_AgentPluginEmbed.RuntimeIdentifier)' == ''">
         <LogicalName>EmbeddedAssemblies/%(Filename).dll</LogicalName>
-      </EmbeddedResource>
+      </_AgentPluginEmbedAnyRuntime>
+      <_AgentPluginEmbedRuntime Include="@(_AgentPluginEmbed)"
+                                Condition="'%(_AgentPluginEmbed.RuntimeIdentifier)' != '' And $(_AgentPluginManagedRuntimes.Contains(';%(_AgentPluginEmbed.RuntimeIdentifier);'))">
+        <LogicalName>EmbeddedAssemblies/%(_AgentPluginEmbed.RuntimeIdentifier)/%(Filename).dll</LogicalName>
+      </_AgentPluginEmbedRuntime>
+
+      <!-- Native libraries likewise; PluginLoadContext unpacks those of the
+           running system when the plugin first calls into one. -->
+      <_AgentPluginNative Include="@(RuntimeTargetsCopyLocalItems)"
+                          Condition="'%(AssetType)' == 'native' And $(_AgentPluginRuntimes.Contains(';%(RuntimeIdentifier);'))">
+        <LogicalName>EmbeddedNative/%(RuntimeIdentifier)/%(Filename)%(Extension)</LogicalName>
+      </_AgentPluginNative>
+
+      <EmbeddedResource Include="@(_AgentPluginEmbedAnyRuntime);@(_AgentPluginEmbedRuntime);@(_AgentPluginNative)" />
 
       <!-- The host copies must not land next to the plugin either. -->
       <ReferenceCopyLocalPaths Remove="@(_AgentPluginHostFile)" />

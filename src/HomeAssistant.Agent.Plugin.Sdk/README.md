@@ -21,7 +21,11 @@ Or reference the SDK from any class library:
 - Compiles your plugin against the plugin API (`HomeAssistant.Agent.Plugin.Base`,
   `HomeAssistant.Connector`). The agent provides these at run time, so they are never copied
   next to your plugin.
-- Packs your own dependencies into the plugin dll: a plugin ships as **one file**.
+- Packs your own dependencies into the plugin dll: a plugin ships as **one file**. That
+  includes a package's builds for one system (`runtimes/<rid>/lib`) and its native libraries
+  (`runtimes/<rid>/native`), for the systems the agent is released for — `win-x64` and
+  `osx-arm64`; set `AgentPluginRuntimes` to change them. The agent unpacks the native ones
+  into a per-user cache the first time the plugin calls into one.
 - Writes the plugin's metadata into the dll, from these properties in your project file:
 
 | Property            | Meaning                                  |

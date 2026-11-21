@@ -11,6 +11,7 @@ internal class PluginLoadContext : AssemblyLoadContext
     private readonly string _pluginAssemblyPath;
     private readonly string _pluginDirectory;
     private Assembly? _pluginAssembly;
+    private EmbeddedNativeLibraries? _nativeLibraries;
 
     public PluginLoadContext(string pluginAssemblyPath)
         : base(Path.GetFileNameWithoutExtension(pluginAssemblyPath))
@@ -68,16 +69,49 @@ internal class PluginLoadContext : AssemblyLoadContext
     }
 
     // Dependencies embedded by the EmbedPluginDependencies build target under
-    // the "EmbeddedAssemblies/<name>.dll" logical name.
+    // the "EmbeddedAssemblies/<name>.dll" logical name; those built for one
+    // system under "EmbeddedAssemblies/<rid>/<name>.dll", which win.
     private Assembly? LoadFromEmbeddedResource(string assemblyName)
     {
-        using var stream = PluginAssembly?.GetManifestResourceStream($"EmbeddedAssemblies/{assemblyName}.dll");
-        return stream != null ? LoadFromStream(stream) : null;
+        var resourceNames = PluginRuntime.Identifiers
+            .Select(runtime => $"EmbeddedAssemblies/{runtime}/{assemblyName}.dll")
+            .Append($"EmbeddedAssemblies/{assemblyName}.dll");
+
+        foreach (var resourceName in resourceNames)
+        {
+            using var stream = PluginAssembly?.GetManifestResourceStream(resourceName);
+
+            if (stream != null)
+                return LoadFromStream(stream);
+        }
+
+        return null;
     }
 
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName)
+            ?? NativeLibraries?.Resolve(unmanagedDllName);
+
         return path != null ? LoadUnmanagedDllFromPath(path) : IntPtr.Zero;
+    }
+
+    // Native libraries embedded by the EmbedPluginDependencies build target.
+    private EmbeddedNativeLibraries? NativeLibraries
+    {
+        get
+        {
+            if (_nativeLibraries == null && PluginAssembly is { } assembly)
+            {
+                _nativeLibraries = new EmbeddedNativeLibraries(
+                    assembly.GetManifestResourceNames(),
+                    assembly.GetManifestResourceStream,
+                    Path.GetFileNameWithoutExtension(_pluginAssemblyPath),
+                    PluginRuntime.Identifiers,
+                    EmbeddedNativeLibraries.DefaultCacheRoot);
+            }
+
+            return _nativeLibraries;
+        }
     }
 }

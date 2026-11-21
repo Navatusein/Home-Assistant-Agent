@@ -46,7 +46,7 @@ public sealed class DesktopNotifier : IUserNotifier
     // No system notifications here: the window should show it. UI thread.
     public event Action<string, string, bool>? ShowInWindowRequested;
 
-    public void Show(string title, string message, bool warning = false)
+    public void Show(string title, string message, bool warning = false, Uri? link = null)
     {
         _logger.LogInformation("Notification: {Title} — {Message}", title, message);
 
@@ -55,7 +55,7 @@ public sealed class DesktopNotifier : IUserNotifier
         {
             try
             {
-                _toasts.Show(title, message);
+                _toasts.Show(title, message, link == null ? null : () => Open(link));
                 return;
             }
             catch (Exception ex)
@@ -69,6 +69,18 @@ public sealed class DesktopNotifier : IUserNotifier
             return;
 
         Dispatcher.UIThread.Post(() => ShowInWindowRequested?.Invoke(title, message, warning));
+    }
+
+    private void Open(Uri link)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(link.AbsoluteUri) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The link of a notification could not be opened");
+        }
     }
 
     // "display notification" posts it as Script Editor's, which macOS allows
