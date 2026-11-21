@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Runtime.Versioning;
 using HomeAssistant.Agent.Core;
 using HomeAssistant.Agent.Core.Platform;
 using HomeAssistant.Agent.Core.Plugins;
@@ -12,7 +13,10 @@ namespace HomeAssistant.Agent.Services;
 // official one, which also lists the agent, and the ones the user added.
 //
 // The agent updates through its installer, run silently with one UAC prompt;
-// the installer closes this app, replaces everything and starts it again.
+// the installer closes this app, replaces everything and starts it again. On
+// macOS the installer is build/install-macos.sh, shipped in the bundle: run
+// as root with the disk image, it waits for this app to exit, replaces the
+// bundle and starts the new one in the user's session.
 // Plugins change through the service executable's elevated "plugins" step
 // (see PluginStep): this side downloads and verifies the files, starts that
 // step and exits, since the plugin dlls stay locked while the app runs.
@@ -49,9 +53,8 @@ public sealed class UpdateService : IDisposable
 
     public bool IsChecking { get; private set; }
 
-    // A portable copy (a development build) has no installer to run, and the
-    // installer is a Windows one.
-    public bool CanUpdateAgent => !AgentPaths.IsPortable && OperatingSystem.IsWindows();
+    // A portable copy (a development build) has no installer to run.
+    public bool CanUpdateAgent => !AgentPaths.IsPortable && (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS());
 
     // Raised after every check, on a background thread.
     public event Action? Changed;
@@ -96,7 +99,7 @@ public sealed class UpdateService : IDisposable
                 StringComparer.OrdinalIgnoreCase);
 
             Result = UpdateCheck.Evaluate(AgentInfo.Version, PluginManager.ApiVersion, installed,
-                new PluginLock(PluginLock.DefaultPath).Read(), fetched, agentIndex);
+                new PluginLock(PluginLock.DefaultPath).Read(), fetched, agentIndex, OperatingSystem.IsMacOS());
 
             var pluginUpdates = Result.Plugins.Count(offer => offer.State == PluginOfferState.UpdateAvailable);
 
@@ -125,16 +128,71 @@ public sealed class UpdateService : IDisposable
             throw new InvalidOperationException("A portable copy is updated by replacing its folder.");
 
         var release = Result.AgentUpdate ?? throw new InvalidOperationException("No update is available.");
+        var package = release.PackageFor(OperatingSystem.IsMacOS())
+            ?? throw new InvalidOperationException($"Version {release.Version} has no package for this system.");
+
+        if (OperatingSystem.IsMacOS())
+        {
+            await InstallOnMacAsync(release, package, progress, cancellationToken);
+            return;
+        }
+
         var installer = Path.Combine(Path.GetTempPath(), $"HomeAssistantAgent-Setup-{release.Version}.exe");
 
-        _logger.LogInformation("Downloading agent {Version} from {Url}", release.Version, release.Url);
+        _logger.LogInformation("Downloading agent {Version} from {Url}", release.Version, package.Url);
 
-        await _catalog.DownloadAsync(release.Url, release.Sha256, installer, progress, cancellationToken);
+        await _catalog.DownloadAsync(package.Url, package.Sha256, installer, progress, cancellationToken);
 
         _logger.LogInformation("Starting the installer of {Version}", release.Version);
 
         StartElevated(installer, ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"]);
     }
+
+    // The script in the bundle: Contents/Resources next to Contents/MacOS.
+    [SupportedOSPlatform("macos")]
+    private static string MacInstallScript =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Resources", "install-macos.sh"));
+
+    // The step outlives this app: started in the background through the
+    // password prompt, it waits for this process to exit. It runs a copy of
+    // the script — the bundle it came from is the one being replaced — and
+    // writes what it does to the agent's log folder. A declined prompt comes
+    // back as OperationCanceledException with the app still running.
+    [SupportedOSPlatform("macos")]
+    private async Task InstallOnMacAsync(CatalogAgent release, CatalogPackage package,
+        IProgress<double>? progress, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(MacInstallScript))
+            throw new InvalidOperationException($"{MacInstallScript} is missing: install the agent again.");
+
+        var folder = Directory.CreateTempSubdirectory("ha-agent-update-").FullName;
+        var image = Path.Combine(folder, $"HomeAssistantAgent-{release.Version}-macos-arm64.dmg");
+        var script = Path.Combine(folder, "install-macos.sh");
+        var log = Path.Combine(AgentPaths.LogsDirectory, $"update-{release.Version}.log");
+
+        _logger.LogInformation("Downloading agent {Version} from {Url}", release.Version, package.Url);
+
+        await _catalog.DownloadAsync(package.Url, package.Sha256, image, progress, cancellationToken);
+        File.Copy(MacInstallScript, script);
+
+        var command = $"nohup /bin/bash {Quote(script)} --dmg {Quote(image)} --remove-dmg"
+            + $" --user {Quote(Environment.UserName)} --wait-pid {Environment.ProcessId}"
+            + $" > {Quote(log)} 2>&1 &";
+
+        _logger.LogInformation("Starting the update to {Version}; its log: {Log}", release.Version, log);
+
+        var exitCode = await _elevation.RunAsync("/bin/sh", ["-c", command], cancellationToken);
+
+        if (exitCode != 0)
+            throw new InvalidOperationException($"The update did not start (exit code {exitCode}).");
+
+        // The step waits for this process before it replaces the bundle.
+        Avalonia.Threading.Dispatcher.UIThread.Post(_trayIcon.RequestExit);
+    }
+
+    // Single quotes keep everything literal in sh; a quote inside is closed,
+    // escaped and reopened.
+    private static string Quote(string argument) => "'" + argument.Replace("'", "'\\''") + "'";
 
     // Downloads and verifies the new plugin files, starts the elevated step
     // and exits the app, which the step starts again when it is done.

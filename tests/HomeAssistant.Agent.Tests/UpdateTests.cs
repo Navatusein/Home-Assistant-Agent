@@ -28,11 +28,12 @@ public class UpdateCheckTests
         Dictionary<string, PluginLock.Entry>? lockEntries = null,
         string agentVersion = "1.0.0",
         SourceResult? agentIndex = null,
+        bool macOS = false,
         params SourceResult[] sources) =>
         UpdateCheck.Evaluate(Version.Parse(agentVersion), Api,
             installed ?? new Dictionary<string, Version?>(StringComparer.OrdinalIgnoreCase),
             lockEntries ?? new Dictionary<string, PluginLock.Entry>(StringComparer.OrdinalIgnoreCase),
-            sources, agentIndex);
+            sources, agentIndex, macOS);
 
     // Not from a plugin catalog, even the official one.
     [Fact]
@@ -44,6 +45,26 @@ public class UpdateCheckTests
         Assert.Null(Evaluate(agentVersion: "1.1.0", agentIndex: Source(AgentIndex, release)).AgentUpdate);
         Assert.Null(Evaluate(sources: Source(Official, release)).AgentUpdate);
         Assert.Null(Evaluate(sources: Source(Other, release)).AgentUpdate);
+    }
+
+    // A Mac installs the disk image: until the release's macOS job has added
+    // it, the new version is not offered there (and stays offered on Windows).
+    [Fact]
+    public void Offers_a_mac_the_version_with_a_disk_image_only()
+    {
+        var windowsOnly = new CatalogAgent { Version = "1.2.0", Url = "https://x/setup.exe", Sha256 = "00" };
+        var both = windowsOnly with
+        {
+            Macos = new CatalogPackage { Url = "https://x/agent-macos-arm64.dmg", Sha256 = "11" }
+        };
+
+        Assert.Null(Evaluate(agentIndex: Source(AgentIndex, windowsOnly), macOS: true).AgentUpdate);
+        Assert.Equal("1.2.0", Evaluate(agentIndex: Source(AgentIndex, windowsOnly)).AgentUpdate?.Version);
+
+        var update = Evaluate(agentIndex: Source(AgentIndex, both), macOS: true).AgentUpdate;
+
+        Assert.Equal("https://x/agent-macos-arm64.dmg", update?.PackageFor(macOS: true)?.Url);
+        Assert.Equal("https://x/setup.exe", update?.PackageFor(macOS: false)?.Url);
     }
 
     [Fact]
@@ -201,7 +222,8 @@ public class CatalogTests
             {
               "schema": 1,
               "updated": "2026-10-16T10:00:00Z",
-              "agent": { "version": "1.1.0", "url": "https://x/setup.exe", "sha256": "ab" },
+              "agent": { "version": "1.1.0", "url": "https://x/setup.exe", "sha256": "ab",
+                         "macos": { "url": "https://x/agent.dmg", "sha256": "ef" } },
               "plugins": [
                 { "code": "obs-plugin", "name": "OBS", "version": "1.0.0", "apiVersion": "2.0",
                   "url": "https://github.com/o/r/releases/download/plugin%2Fobs%2Fv1.0.0/HomeAssistant.Agent.Plugin.Obs.dll",
@@ -211,6 +233,7 @@ public class CatalogTests
             """);
 
         Assert.Equal("1.1.0", index.Agent!.Version);
+        Assert.Equal("ef", index.Agent.Macos?.Sha256);
         Assert.Equal("HomeAssistant.Agent.Plugin.Obs.dll", Assert.Single(index.Plugins).FileName);
     }
 }

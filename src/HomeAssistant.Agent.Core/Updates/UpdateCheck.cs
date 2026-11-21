@@ -64,12 +64,15 @@ public static class UpdateCheck
         IReadOnlyDictionary<string, Version?> installed,
         IReadOnlyDictionary<string, PluginLock.Entry> lockEntries,
         IReadOnlyList<SourceResult> sources,
-        SourceResult? agentIndex = null)
+        SourceResult? agentIndex = null,
+        bool macOS = false)
     {
         // The agent only ever comes from its own index, never from a plugin
-        // catalog — not even the official one.
+        // catalog — not even the official one — and only with a package for
+        // this system: a Mac is offered a version once its disk image is in.
         var agentUpdate = agentIndex?.Index?.Agent is { } agent
             && TryParse(agent.Version, out var latest) && latest > Normalize(agentVersion)
+            && agent.PackageFor(macOS) != null
                 ? agent
                 : null;
 

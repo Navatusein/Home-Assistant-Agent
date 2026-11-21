@@ -29,9 +29,27 @@ public sealed record CatalogIndex
 public sealed record CatalogAgent
 {
     public required string Version { get; init; }
+
+    // The Windows installer; agents before macOS updates read only these.
     public required string Url { get; init; }
     public required string Sha256 { get; init; }
+
     public string? ReleaseNotes { get; init; }
+
+    // The macOS disk image of the same version. The release's macOS job adds
+    // it after the Windows one has written the entry, so for a while a new
+    // version may come without it.
+    public CatalogPackage? Macos { get; init; }
+
+    // What this system installs: null where the release has none for it.
+    public CatalogPackage? PackageFor(bool macOS) =>
+        macOS ? Macos : new CatalogPackage { Url = Url, Sha256 = Sha256 };
+}
+
+public sealed record CatalogPackage
+{
+    public required string Url { get; init; }
+    public required string Sha256 { get; init; }
 }
 
 public sealed record CatalogPlugin
