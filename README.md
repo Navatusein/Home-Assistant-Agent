@@ -22,8 +22,18 @@ Downloads are on the [releases](https://github.com/Navatusein/Home-Assistant-Age
 **Windows** — `HomeAssistantAgent-Setup-<version>.exe`, Windows 10 2004 or newer. The agent runs as
 a desktop app and a Windows service; it updates itself and its plugins.
 
-**macOS** — `HomeAssistantAgent-<version>-macos-arm64.dmg`, Apple silicon, macOS 12 or newer. Drag
-the app to Applications. The app is not notarized: the first start is blocked — open System
+**macOS** — Apple silicon, macOS 12 or newer. In a terminal, to install or update:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Navatusein/Home-Assistant-Agent/main/build/install-macos.sh | bash
+```
+
+It asks for the administrator password, installs the app into Applications, creates the data
+folder and brings back the background service and the app if they ran before (`bash -s --
+--service` also installs the service, `--version 1.2.0` picks a version). Started this way, the app
+needs no *Open Anyway*.
+
+Or by hand: `HomeAssistantAgent-<version>-macos-arm64.dmg`, drag the app to Applications. The app is not notarized: the first start is blocked — open System
 Settings → Privacy & Security and choose *Open Anyway*. On that first start the agent asks for an
 administrator password once, to create its data folder. It lives in the menu bar; the background
 service (a launchd daemon) is installed from Settings. New versions are downloaded from the
