@@ -30,7 +30,7 @@
     "sdkVersion": {
       "type": "parameter",
       "datatype": "string",
-      "defaultValue": "2.3.*",
+      "defaultValue": "2.4.*",
       "replaces": "SDK_VERSION",
       "description": "Version of HomeAssistant.Agent.Plugin.Sdk to build against."
     }
