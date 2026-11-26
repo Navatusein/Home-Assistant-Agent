@@ -13,10 +13,10 @@
              Bump the minor for additions, the major for breaking changes
              (2.0: PluginContext replaced the static logger and storage; 2.1:
              BaseEntity.PublishDefaultState; 2.2: IPluginNotifier; 2.3:
-             notification images and buttons). The
-             same rule covers HomeAssistant.Connector's version. -->
-        <AssemblyVersion>2.3.0.0</AssemblyVersion>
-        <FileVersion>2.3.0.0</FileVersion>
+             notification images and buttons; 2.4: Connector's ImageEntity).
+             The same rule covers HomeAssistant.Connector's version. -->
+        <AssemblyVersion>2.4.0.0</AssemblyVersion>
+        <FileVersion>2.4.0.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
