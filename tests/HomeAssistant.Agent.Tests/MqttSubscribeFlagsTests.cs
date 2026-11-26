@@ -41,6 +41,11 @@ public sealed class MqttSubscribeFlagsTests : IAsyncLifetime
     {
         await PublishRawAsync(Secret, retain: true);
 
+        // A QoS 0 publish returns once it is sent: on a slow runner the
+        // broker could store it only after the subscription below, and it
+        // would then arrive live instead of retained.
+        await WaitForRetainedAsync();
+
         var received = new ConcurrentQueue<string>();
         var cleared = new TaskCompletionSource();
 
@@ -91,6 +96,19 @@ public sealed class MqttSubscribeFlagsTests : IAsyncLifetime
             .WithRetainFlag(retain)
             .Build());
         await publisher.DisconnectAsync();
+    }
+
+    private async Task WaitForRetainedAsync()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+
+        while ((await _server.GetRetainedMessagesAsync()).All(message => message.Topic != Topic))
+        {
+            if (DateTime.UtcNow > deadline)
+                throw new TimeoutException("The broker did not keep the retained message.");
+
+            await Task.Delay(20);
+        }
     }
 
     private MqttClientOptions Options()
