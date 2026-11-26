@@ -10,7 +10,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <PackageType>Template</PackageType>
         <PackageId>HomeAssistant.Agent.Plugin.Templates</PackageId>
-        <Version>2.3.0</Version>
+        <Version>2.4.0</Version>
         <Title>Home Assistant Agent plugin templates</Title>
         <Authors>Navatusein</Authors>
         <Description>dotnet new templates for Home Assistant Agent plugins.</Description>
